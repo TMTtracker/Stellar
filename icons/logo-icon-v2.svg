@@ -1,0 +1,9 @@
+<svg width="240" height="240" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Logo: a house with code brackets around a checkmark, representing a coding task completed">
+  <rect x="0" y="0" width="120" height="120" fill="#FFFFFF"/>
+  <path d="M60,14 L104,54 L104,106 L16,106 L16,54 Z" fill="#000000"/>
+  <g fill="none" stroke="#FFFFFF" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="35,73 24,84 35,95" stroke-width="6"/>
+    <polyline points="85,73 96,84 85,95" stroke-width="6"/>
+    <polyline points="45,87 54,96 74,67" stroke-width="7"/>
+  </g>
+</svg>
