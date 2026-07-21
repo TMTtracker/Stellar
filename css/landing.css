@@ -159,6 +159,8 @@ body{
 
 }
 
+
+
 /* Navigation */
 
 .nav-links{
@@ -213,5 +215,122 @@ body{
     background:#202020;
 
     border:none;
+
+}
+
+/* ===========================
+        Landing Content
+=========================== */
+
+.landing-content{
+
+    margin-left:82px;
+
+    width:calc(100% - 82px);
+
+    padding:40px 80px;
+
+    font-family:"Bricolage Grotesque", sans-serif;
+
+}
+
+/* ===========================
+        Hero Section
+=========================== */
+
+.hero-section{
+
+    display:flex;
+
+    align-items:flex-start;
+
+    justify-content:space-between;
+
+    
+
+}
+
+/* ===========================
+        Hero Text
+=========================== */
+
+.hero-text{
+
+    width:650px;
+    bottom:150px;
+    position:relative;
+    
+    
+}
+
+.hero-title{
+
+    font-size:68px;
+
+    font-weight:700;
+
+    line-height:1.05;
+
+    color:#1E1E1E;
+
+    margin-bottom:24px;
+
+}
+
+.hero-subtitle{
+
+    font-size:22px;
+
+    line-height:1.7;
+
+    color:#6A6A6A;
+
+    max-width:620px;
+
+}
+
+.hero-section{
+
+    display:flex;
+
+    justify-content:space-between;
+
+    align-items:center;
+
+    gap:80px;
+
+    margin-top:50px;
+
+}
+
+/* ===========================
+        3D Model Area
+=========================== */
+
+.hero-model-container{
+
+    flex:1.2;
+
+    display:flex;
+
+    justify-content:center;
+
+    align-items:flex-start;
+
+}
+
+#three-container{
+
+    width:700px;
+
+    height:520px;
+
+    border-radius:30px;
+
+    background:transparent;
+
+    overflow:hidden;
+
+    position:relative;
 
 }

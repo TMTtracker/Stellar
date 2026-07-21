@@ -1,0 +1,23 @@
+{
+  "name": "stellar",
+  "version": "1.0.0",
+  "description": "Gamified Study Platform. For student who likes to study and complete task and this will create a world which was created because they completed a specified task under a subject. Each task will grant them house pieces which you can put anywhere on the map grid. you can gain XP and coins which you can use to buy other stuffs. EXPERIMENTAL",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TMTtracker/Stellar.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/TMTtracker/Stellar/issues"
+  },
+  "homepage": "https://github.com/TMTtracker/Stellar#readme",
+  "dependencies": {
+    "three": "^0.185.1"
+  }
+}
