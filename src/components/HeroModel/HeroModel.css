@@ -1,0 +1,28 @@
+.hero-model{
+
+    flex:1;
+
+    display:flex;
+    justify-content:center;
+    align-items:center;
+
+}
+
+.model-container{
+
+    width:550px;
+    height:650px;
+
+    background:#EAF3ED;
+
+    border-radius:30px;
+
+    border:2px dashed #C8D5CC;
+
+    display:flex;
+    justify-content:center;
+    align-items:center;
+
+    color:#8A8A8A;
+    font-size:20px;
+}

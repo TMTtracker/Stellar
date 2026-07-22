@@ -1,0 +1,17 @@
+.landing-main{
+
+    margin-left:78px;
+    margin-top:90px;
+
+    padding:60px;
+
+    min-height:calc(100vh - 90px);
+
+    display:grid;
+
+    grid-template-columns:500px 1fr;
+
+    gap:80px;
+
+    align-items:center;
+}

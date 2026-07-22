@@ -1,23 +1,28 @@
 {
   "name": "stellar",
-  "version": "1.0.0",
-  "description": "Gamified Study Platform. For student who likes to study and complete task and this will create a world which was created because they completed a specified task under a subject. Each task will grant them house pieces which you can put anywhere on the map grid. you can gain XP and coins which you can use to buy other stuffs. EXPERIMENTAL",
-  "main": "index.js",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "vite",
+    "build": "vite build",
+    "lint": "eslint .",
+    "preview": "vite preview"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/TMTtracker/Stellar.git"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/TMTtracker/Stellar/issues"
-  },
-  "homepage": "https://github.com/TMTtracker/Stellar#readme",
   "dependencies": {
-    "three": "^0.185.1"
+    "lucide-react": "^1.25.0",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.3",
+    "eslint": "^10.6.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.3",
+    "globals": "^17.7.0",
+    "vite": "^8.1.1"
   }
 }

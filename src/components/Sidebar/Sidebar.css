@@ -1,0 +1,148 @@
+.sidebar{
+
+    position:fixed;
+
+    left:0;
+    top:0;
+
+    width:78px;
+    height:100vh;
+
+    background:#f8faf8;
+
+    border-right:1px solid #E6EBE6;
+
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+
+}
+
+
+
+.sidebar-logo{
+
+    width:46px;
+    height:46px;
+
+    margin-top:22px;
+
+    border-radius:12px;
+
+    display:flex;
+    justify-content:center;
+    align-items:center;
+
+}
+
+.sidebar-logo img{
+
+    width:60px;
+    height:60px;
+
+    object-fit:contain;
+
+}
+
+
+.sidebar-nav{
+
+    margin-top:55px;
+
+    display:flex;
+    flex-direction:column;
+    gap:18px;
+
+}
+
+.nav-button{
+    position:relative;
+
+    width:46px;
+    height:46px;
+
+    border:none;
+
+    background:transparent;
+
+    border-radius:12px;
+
+    display:flex;
+    justify-content:center;
+    align-items:center;
+
+    cursor:pointer;
+
+    color:#303030;
+
+    transition:0.25s;
+}
+
+.nav-button:hover{
+
+    background:#E8EEE8;
+
+}
+
+.nav-button.active{
+
+    background:#232629;
+    color:white;
+}
+
+.tooltip{
+
+    position:absolute;
+
+    left:58px;
+    top:50%;
+
+    transform:translateY(-50%) translateX(-10px);
+
+    background:#232629;
+    color:white;
+
+    padding:8px 14px;
+
+    border-radius:10px;
+
+    white-space:nowrap;
+
+    opacity:0;
+    visibility:hidden;
+
+    transition:0.25s;
+
+    pointer-events:none;
+
+    z-index:1000;
+}
+
+.nav-button:hover .tooltip{
+
+    opacity:1;
+    visibility:visible;
+
+    transform:translateY(-50%) translateX(0);
+
+}
+
+.tooltip::before{
+
+    content:"";
+
+    position:absolute;
+
+    left:-6px;
+    top:50%;
+
+    transform:translateY(-50%);
+
+    width:12px;
+    height:12px;
+
+    background:#232629;
+
+    rotate:45deg;
+
+}
