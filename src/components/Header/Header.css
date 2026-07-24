@@ -34,11 +34,12 @@
     border-radius:14px;
 
     border:1px solid #E4E4E4;
+    color:#3d3d3d;
 
     background:white;
 
-    font-size:17px;
-    font-weight:600;
+    font-size:18px;
+    font-weight:800;
 
     cursor:pointer;
 
@@ -49,7 +50,7 @@
 
     transform:translateY(-2px);
 
-    box-shadow:0 8px 20px rgba(0,0,0,.08);
+    box-shadow:0 8px 20px rgba(32, 32, 32, 0.08);
 
 }
 
@@ -66,8 +67,8 @@
 
     color:white;
 
-    font-size:17px;
-    font-weight:600;
+    font-size:18px;
+    font-weight:800;
 
     cursor:pointer;
 
