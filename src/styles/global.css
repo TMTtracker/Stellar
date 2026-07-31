@@ -11,3 +11,8 @@ body{
     font-family:bricolage grotesque, sans-serif;
 }
 
+html{
+
+    scroll-behavior:smooth;
+
+}

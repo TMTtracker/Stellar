@@ -1,21 +1,49 @@
+import "./HeroModel.css";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import { Grid } from "@react-three/drei";
 import Camp from "./Camp";
+import {
+    Brain,
+    Medal,
+    Blocks
+} from "lucide-react";
 
 function HeroModel() {
 
     return (
 
+        
         <section className="hero-model">
+            
+            
 
             <div className="model-container">
+                
+<div className="hero-features">
 
+    <div className="feature">
+        <Brain size={22}/>
+        <span>Keep Learning</span>
+    </div>
+
+    <div className="feature">
+        <Medal size={22}/>
+        <span>Achieve Your Goal</span>
+    </div>
+
+    <div className="feature">
+        <Blocks size={22}/>
+        <span>Build Your World</span>
+    </div>
+
+</div>
+                
                 <Canvas
 
                 style={{
                 width: "100%",
-                height: "100%"
+                height: "600px"
                 
                
                 

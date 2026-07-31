@@ -14,4 +14,31 @@
     gap:80px;
 
     align-items:center;
+     margin-bottom:120px;
+}
+
+.courses,
+.leaderboard,
+.community,
+.profile{
+
+    margin-left:78px;
+
+    padding:80px 60px;
+
+    min-height:100vh;
+
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+
+}
+.hero,
+.courses,
+.leaderboard,
+.community,
+.profile{
+
+    scroll-margin-top:110px;
+
 }

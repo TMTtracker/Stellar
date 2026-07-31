@@ -20,3 +20,39 @@
 
     position: relative;
 }
+.hero-features{
+   position:absolute;
+
+    top:35px;
+    left:60px;
+    right:60px;
+
+    display:flex;
+    justify-content:space-between;
+
+    z-index:10;
+    pointer-events:none;
+    top:15px;
+}
+
+.feature{
+  display:flex;
+    align-items:center;
+    gap:8px;
+
+    color:#1F2225;
+    font-size:15px;
+    font-weight:600;           /* space between icon and text */
+}
+
+.feature svg{
+    width:22px;
+    height:22px;
+    color:#1F2225;
+}
+
+.feature span{
+    font-size:18px;
+    font-weight:600;
+    color:#1F2225;
+}

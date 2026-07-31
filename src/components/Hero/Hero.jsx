@@ -3,7 +3,7 @@ import "./Hero.css";
 function Hero() {
     return (
 
-        <section className="hero">
+        <section className="hero" id="home">
 
             <h1 className="hero-title">
                 STELLAR
