@@ -1,11 +1,10 @@
-import "./HeroModel.css";
-
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
-
+import { Grid } from "@react-three/drei";
 import Camp from "./Camp";
 
 function HeroModel() {
+
     return (
 
         <section className="hero-model">
@@ -13,25 +12,66 @@ function HeroModel() {
             <div className="model-container">
 
                 <Canvas
+
+                style={{
+                width: "100%",
+                height: "100%"
+                
+               
+                
+                    }}
+
+               orthographic
                     camera={{
-                        position: [0, 2, 6],
-                        fov: 45,
+                        position: [18, 18, 18],
+                        zoom: 50,
+                        near: 0.1,
+                        far: 1000,
+                    }}
+                    onCreated={({ camera }) => {
+                        camera.lookAt(0, 0, 0);
                     }}
                 >
 
-                    <ambientLight intensity={2} />
+                <color attach="background" args={["#effaf4"]} />
 
-                    <directionalLight
-                        position={[5, 10, 5]}
-                        intensity={3}
-                    />
+                <ambientLight intensity={2} />
 
-                    <Camp />
+                <directionalLight
+                position={[10,20,10]}
+                intensity={2}
+                />
 
-                    <OrbitControls
-                        enablePan={false}
-                        enableZoom={false}
-                    />
+               <Grid
+                            args={[50, 50]}
+                            cellSize={1}
+                            cellThickness={0.5}
+                            cellColor="#6f6f6f"
+                            sectionSize={4}
+                            sectionThickness={1}
+                            sectionColor="#888888"
+                            fadeDistance={120}
+                            fadeStrength={8}
+                            infiniteGrid={false}
+                                    />  
+
+                               
+
+               
+
+                <Camp />
+
+                <OrbitControls
+                               makeDefault
+                               target={[0,0,0]}
+                         
+                            enableRotate={false}
+                            enablePan={true}
+                            enableZoom={true}
+                            minZoom={25}
+                            maxZoom={50}
+
+                />
 
                 </Canvas>
 
@@ -40,6 +80,7 @@ function HeroModel() {
         </section>
 
     );
+
 }
 
 export default HeroModel;

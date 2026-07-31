@@ -1,17 +1,28 @@
 import { useGLTF } from "@react-three/drei";
+import { useEffect } from "react";
+import * as THREE from "three";
+
+import campModel from "../../assets/models/SM_Camp.glb";
 
 function Camp() {
-  const { scene } = useGLTF(
-    "https://fxxhulofehjazeepbxnx.storage.supabase.co/storage/v1/object/public/3D%20models/SM_Camp.glb"
-  );
 
-  return (
-    <primitive
-      object={scene}
-      scale={1}
-      position={[0, 0, 0]}
-    />
-  );
+    const { scene } = useGLTF(campModel);
+
+    useEffect(() => {
+
+        const box = new THREE.Box3().setFromObject(scene);
+        const center = box.getCenter(new THREE.Vector3());
+
+        scene.position.sub(center);
+
+    }, [scene]);
+
+    return (
+        <primitive
+            object={scene}
+            scale={0.01}
+        />
+    );
 }
 
 export default Camp;

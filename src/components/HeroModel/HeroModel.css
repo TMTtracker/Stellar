@@ -1,23 +1,22 @@
 .hero-model{
+    flex: 1.8;
 
-    flex:1;
-
+    position: relative;
+  
     display:flex;
     justify-content:center;
     align-items:center;
+    
+    
 
+    overflow: hidden;
 }
 
 .model-container{
+    width:100%;
+    height:100%;
+   
+    
 
-    width:600px;
-    height:600px;
-
-    display:flex;
-    justify-content:center;
-    align-items:center;
-
-    /* Temporary while testing */
-    /* background:red; */
-
+    position: relative;
 }
