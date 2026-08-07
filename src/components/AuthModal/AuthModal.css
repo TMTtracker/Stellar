@@ -1,0 +1,203 @@
+/* AuthModal.css */
+
+.authmodal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.authmodal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(14, 20, 16, 0.5);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  opacity: 0;
+  transition: opacity 200ms ease-out;
+}
+
+.authmodal-backdrop.is-visible {
+  opacity: 1;
+}
+
+.authmodal-card {
+  position: relative;
+  width: 100%;
+  max-width: 420px;
+  background: #ffffff;
+  border-radius: 24px;
+  padding: 32px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  opacity: 0;
+  transform: scale(0.96) translateY(8px);
+  transition: opacity 200ms ease-out, transform 200ms ease-out;
+}
+
+.authmodal-card.is-visible {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+}
+
+.authmodal-close {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: #6b7280;
+  cursor: pointer;
+  transition: background 150ms, color 150ms;
+}
+
+.authmodal-close:hover {
+  background: #f3f4f6;
+  color: #000000;
+}
+
+.authmodal-badge img {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 50px;
+  height: 50px;
+  
+  background: #3b8668;
+  margin-bottom: 20px;
+}
+
+.authmodal-title {
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: #1f2422;
+  margin: 0;
+}
+
+.authmodal-subtitle {
+  font-size: 14px;
+  color: #6b7280;
+  margin: 4px 0 24px;
+  line-height: 1.5;
+}
+
+.authmodal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.authmodal-field {
+  position: relative;
+}
+
+.authmodal-field-icon {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #9ca3af;
+  display: flex;
+  pointer-events: none;
+}
+
+.authmodal-input {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  border-radius: 999px;
+  padding: 13px 16px 13px 44px;
+  font-size: 14px;
+  color: #1f2937;
+  outline: none;
+  transition: border-color 150ms, box-shadow 150ms;
+}
+
+.authmodal-input::placeholder {
+  color: #9ca3af;
+}
+
+.authmodal-input:focus {
+  border-color: #8fcb8c;
+  box-shadow: 0 0 0 4px rgba(143, 203, 140, 0.2);
+}
+
+.authmodal-forgot-row {
+  text-align: right;
+  margin-top: -4px;
+}
+
+.authmodal-link-muted {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 12px;
+  font-weight: 500;
+  color: #6b7280;
+  cursor: pointer;
+}
+
+.authmodal-link-muted:hover {
+  color: #000000;
+}
+
+.authmodal-submit {
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: none;
+  border-radius: 999px;
+  padding: 13px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #ffffff;
+  background: #8fcb8c;
+  cursor: pointer;
+  transition: background 150ms;
+}
+
+.authmodal-submit:hover {
+  background: #78b975;
+}
+
+.authmodal-switch {
+  text-align: center;
+  font-size: 14px;
+  color: #6b7280;
+  margin-top: 24px;
+}
+
+.authmodal-switch-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  font-weight: 600;
+  font-size: 14px;
+  color: #1f2422;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.authmodal-switch-btn:hover {
+  color: #5fa85c;
+}
+
+@media (max-width: 480px) {
+  .authmodal-card {
+    padding: 24px;
+    border-radius: 20px;
+  }
+}

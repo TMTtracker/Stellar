@@ -1,6 +1,6 @@
 import "./Header.css";
 
-function Header() {
+function Header({ openAuth }) {
     return (
         <header className="header">
 
@@ -10,11 +10,14 @@ function Header() {
 
             <div className="header-right">
 
-                <button className="login-btn">
+                <button className="login-btn"
+                className="login-btn"
+                onClick={() => openAuth("login")}>
                     Log In
                 </button>
 
-                <button className="signup-btn">
+                <button className="signup-btn"
+                onClick={() => openAuth("signup")}>
                     Sign Up
                 </button>
 
