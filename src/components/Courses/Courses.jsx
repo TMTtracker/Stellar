@@ -1,4 +1,5 @@
 import './Courses.css';
+import { GraduationCap, BookOpenCheck, Award, Clock, Users, Library, CheckCircle2 } from 'lucide-react';
 
 const coursesData = [
     {
@@ -93,9 +94,9 @@ function Courses() {
                                         <p className="course-instructor">{course.instructor}</p>
                                         
                                         <div className="course-stats">
-                                            <span className="stat">📊 {course.students}</span>
-                                            <span className="stat">💬 {course.comments}</span>
-                                            <span className="stat">🔖 {course.saves}</span>
+                                            <span className="stat"><Library size={14} /> {course.students}</span>
+                                            <span className="stat"><Award size={14} /> {course.comments}</span>
+                                            <span className="stat"><CheckCircle2 size={14} /> {course.saves}</span>
                                         </div>
 
                                         <div className="course-progress-bar">
@@ -147,23 +148,23 @@ function Courses() {
                     {/* Stats */}
                     <div className="stats-row">
                         <div className="stat-item">
-                            <span className="stat-icon">📄</span>
+                            <GraduationCap className="stat-icon" size={20} />
                             <span className="stat-value">26</span>
                         </div>
                         <div className="stat-item">
-                            <span className="stat-icon">🛡️</span>
+                            <BookOpenCheck className="stat-icon" size={20} />
                             <span className="stat-value">6</span>
                         </div>
                         <div className="stat-item">
-                            <span className="stat-icon">⭐</span>
+                            <Award className="stat-icon" size={20} />
                             <span className="stat-value">4</span>
                         </div>
                         <div className="stat-item">
-                            <span className="stat-icon">⏱️</span>
+                            <Clock className="stat-icon" size={20} />
                             <span className="stat-value">23h</span>
                         </div>
                         <div className="stat-item">
-                            <span className="stat-icon">👥</span>
+                            <Users className="stat-icon" size={20} />
                             <span className="stat-value">128</span>
                         </div>
                     </div>

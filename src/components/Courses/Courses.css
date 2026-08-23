@@ -3,9 +3,12 @@
     --accent: #A8D79F;
     --muted: #6A6F73;
     padding: 25px 15px;
-    background: #F8F9FA;
+    background: #effaf4;
     margin-top: 90px;
     margin-left: 78px;
+    min-height: 100vh;
+    scroll-margin-top: 110px;
+    box-sizing: border-box;
 }
 
 .courses-container {
@@ -237,7 +240,8 @@
 .right-panel {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    justify-content: space-between;
+    gap: 15px;
 }
 
 /* Search Box */
@@ -352,7 +356,7 @@
 }
 
 .stat-icon {
-    font-size: 18px;
+    color: #1F2225;
 }
 
 .stat-value {
@@ -385,13 +389,21 @@
 
 .nav-arrow {
     cursor: pointer;
-    font-size: 16px;
+    font-size: 20px;
+    font-weight: 700;
     color: var(--muted);
-    transition: color 0.2s;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    transition: all 0.2s;
 }
 
 .nav-arrow:hover {
     color: var(--accent);
+    background: rgba(168, 215, 159, 0.12);
 }
 
 .calendar-grid {
@@ -556,33 +568,107 @@
 /* Desktop Layout - Large Screens */
 @media (min-width: 1300px) {
     .courses-section {
-        padding: 30px 30px;
+        padding: 40px 40px;
     }
 
     .courses-container {
         grid-template-columns: 1.8fr 1fr;
-        gap: 30px;
-        max-width: 1400px;
+        gap: 36px;
+        max-width: 1600px;
     }
 
     .section-header h2 {
-        font-size: 26px;
+        font-size: 30px;
     }
 
     .search-box {
-        max-width: 320px;
+        max-width: 340px;
+        padding: 10px 16px;
     }
 
     .courses-grid-3col {
-        gap: 20px;
+        gap: 24px;
     }
 
     .course-card-image {
-        height: 150px;
+        height: 220px;
     }
 
     .course-card-content {
+        padding: 22px;
+    }
+
+    .course-card-content h3 {
+        font-size: 17px;
+    }
+
+    .course-instructor {
+        font-size: 13px;
+    }
+
+    .course-stats {
+        font-size: 13px;
+    }
+
+    .instructors-grid-2x2 {
+        gap: 18px;
+    }
+
+    .instructor-card-item {
+        padding: 20px;
+    }
+
+    .instructor-card-item h4 {
+        font-size: 16px;
+    }
+
+    .instructor-avatar-large {
+        width: 84px;
+        height: 84px;
+        font-size: 38px;
+    }
+
+    .right-panel {
+        gap: 16px;
+    }
+
+    .profile-header {
+        padding: 18px;
+    }
+
+    .profile-image {
+        width: 64px;
+        height: 64px;
+    }
+
+    .stats-row {
         padding: 16px;
+    }
+
+    .stat-value {
+        font-size: 14px;
+    }
+
+    .calendar-section,
+    .activity-section,
+    .upcoming-section {
+        padding: 16px;
+    }
+
+    .nav-arrow {
+        width: 34px;
+        height: 34px;
+        font-size: 24px;
+    }
+
+    .activity-chart {
+        height: 70px;
+    }
+
+    .task-icon {
+        width: 42px;
+        height: 42px;
+        font-size: 18px;
     }
 }
 

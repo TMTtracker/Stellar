@@ -7,106 +7,66 @@ import {
   Users,
   User,
 } from "lucide-react";
-import { useState } from "react";
-import { useEffect } from "react";
-import { useRef } from "react";
+import { useState, useEffect, useRef } from "react";
+
+const SECTION_IDS = ["home", "courses", "leaderboard", "community", "profile"];
 
 function Sidebar() {
 
   const [active, setActive] = useState("home");
-  const isSnapping = useRef(false);
-  const activeRef = useRef("home");
+  const isNavigating = useRef(false);
 
-   const scrollToSection = (id) => {
+  const scrollToSection = (id) => {
 
-    if (isSnapping.current) return;
-
-    isSnapping.current = true;
-
+    isNavigating.current = true;
     setActive(id);
 
     document.getElementById(id)?.scrollIntoView({
-
-        behavior: "smooth",
-        block: "start"
-
+      behavior: "smooth",
+      block: "start",
     });
 
-    setTimeout(() => {
+    const release = () => {
+      isNavigating.current = false;
+    };
 
-        isSnapping.current = false;
+    if ("onscrollend" in window) {
+      window.addEventListener("scrollend", release, { once: true });
+    } else {
+      setTimeout(release, 800);
+    }
+  };
 
-    }, 300);
-
-};
-
-    useEffect(() => {
-      activeRef.current = active;
-
-    const sections = [
-        "home",
-        "courses",
-        "leaderboard",
-        "community",
-        "profile"
-    ];
+  useEffect(() => {
 
     const observer = new IntersectionObserver(
+      (entries) => {
 
-        (entries) => {
+        if (isNavigating.current) return;
 
-            if (isSnapping.current) return;
+        const mostVisible = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
 
-            entries.forEach((entry) => {
-
-                if (!entry.isIntersecting) return;
-
-                if (entry.intersectionRatio < 0.20) return;
-                if (activeRef.current === entry.target.id) return;
-
-                isSnapping.current = true;
-
-                setActive(entry.target.id);
-
-                entry.target.scrollIntoView({
-
-                    behavior: "smooth",
-                    block: "start"
-
-                });
-
-                setTimeout(() => {
-
-                    isSnapping.current = false;
-
-                }, 250);
-
-            });
-
-        }, 
-
-        {
-
-            threshold: [0, 0.2, 0.25, 0.30, 0.45, 0.5, 0.60, 0.75, 1]
-
+        if (mostVisible) {
+          setActive((prev) => (prev === mostVisible.target.id ? prev : mostVisible.target.id));
         }
 
+      },
+      { threshold: [0.2, 0.35, 0.5, 0.65, 0.8] }
     );
 
-    sections.forEach((id) => {
+    SECTION_IDS.forEach((id) => {
 
-        const section = document.getElementById(id);
+      const section = document.getElementById(id);
 
-        if (section) observer.observe(section);
+      if (section) observer.observe(section);
 
     });
 
     return () => observer.disconnect();
 
-}, [active]);
-
-    
-
+  }, []);
 
   return (
     <aside className="sidebar">
