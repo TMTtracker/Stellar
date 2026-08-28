@@ -1,0 +1,175 @@
+import { Flame, Star, MessageCircle, BookOpen, Target, Mic } from 'lucide-react';
+
+// Icons are keyed by string so achievement rows map cleanly onto a future
+// Supabase `icon_key` column - swap or add lucide icons here without touching
+// any component code.
+export const ICON_REGISTRY = {
+    flame: Flame,
+    star: Star,
+    message: MessageCircle,
+    book: BookOpen,
+    target: Target,
+    mic: Mic,
+};
+
+const COURSE_POOL = [
+    'UI Vektor Illustration Design',
+    'UI Styleguide with Figma',
+    'Mastering Blender 3D Design',
+    'Advanced JavaScript Patterns',
+    'Data Structures Bootcamp',
+    'Intro to Product Design',
+    'Public Speaking Basics',
+    'Time Management Mastery',
+];
+
+function coursesFor(indexes, progresses) {
+    return indexes.map((courseIndex, i) => ({
+        id: `${COURSE_POOL[courseIndex].slice(0, 3)}-${courseIndex}`,
+        title: COURSE_POOL[courseIndex],
+        progress: progresses[i],
+    }));
+}
+
+export const leaderboardData = [
+    {
+        id: 'u1',
+        rank: 1,
+        name: 'Rey Mibourne',
+        avatar: '🧑',
+        level: 3,
+        points: 980,
+        deltaFromLastMonth: 5,
+        levelProgress: 87,
+        categories: ['Best Talk', 'Best Interactivity', 'Talk to Listen Ratio'],
+        courses: coursesFor([0, 1, 2, 3, 4], [45, 75, 20, 60, 30]),
+        achievements: [
+            { id: 'u1-a1', iconKey: 'target', level: 1, caption: 'Talk to Listen Ratio' },
+            { id: 'u1-a2', iconKey: 'star', level: 3, caption: 'Positive Sentiment' },
+            { id: 'u1-a3', iconKey: 'message', level: 4, caption: 'Number of Questions' },
+            { id: 'u1-a4', iconKey: 'book', level: 2, caption: 'Conversations' },
+            { id: 'u1-a5', iconKey: 'flame', level: 5, caption: 'Grind Streak' },
+            { id: 'u1-a6', iconKey: 'mic', level: 2, caption: 'Best Talk' },
+        ],
+    },
+    {
+        id: 'u2',
+        rank: 2,
+        name: 'John Doe',
+        avatar: '🧔',
+        level: 3,
+        points: 910,
+        deltaFromLastMonth: -2,
+        levelProgress: 62,
+        categories: ['Consistent Grinder', 'Fast Learner'],
+        courses: coursesFor([1, 2, 5, 6], [55, 40, 90, 10]),
+        achievements: [
+            { id: 'u2-a1', iconKey: 'flame', level: 4, caption: 'Grind Streak' },
+            { id: 'u2-a2', iconKey: 'book', level: 3, caption: 'Conversations' },
+            { id: 'u2-a3', iconKey: 'target', level: 1, caption: 'Talk to Listen Ratio' },
+            { id: 'u2-a4', iconKey: 'star', level: 2, caption: 'Positive Sentiment' },
+            { id: 'u2-a5', iconKey: 'mic', level: 1, caption: 'Best Talk' },
+        ],
+    },
+    {
+        id: 'u3',
+        rank: 3,
+        name: 'Augusta Mitchell',
+        avatar: '👩',
+        level: 3,
+        points: 875,
+        deltaFromLastMonth: 6,
+        levelProgress: 74,
+        categories: ['Top Contributor', 'Best Interactivity'],
+        courses: coursesFor([0, 3, 4, 7], [65, 25, 80, 50]),
+        achievements: [
+            { id: 'u3-a1', iconKey: 'message', level: 5, caption: 'Number of Questions' },
+            { id: 'u3-a2', iconKey: 'star', level: 3, caption: 'Positive Sentiment' },
+            { id: 'u3-a3', iconKey: 'book', level: 2, caption: 'Conversations' },
+            { id: 'u3-a4', iconKey: 'flame', level: 1, caption: 'Grind Streak' },
+            { id: 'u3-a5', iconKey: 'target', level: 3, caption: 'Talk to Listen Ratio' },
+            { id: 'u3-a6', iconKey: 'mic', level: 2, caption: 'Best Talk' },
+        ],
+    },
+    {
+        id: 'u4',
+        rank: 4,
+        name: 'Sarah Chen',
+        avatar: '👩‍🦱',
+        level: 2,
+        points: 790,
+        deltaFromLastMonth: 2,
+        levelProgress: 41,
+        categories: ['Fast Learner'],
+        courses: coursesFor([2, 6, 7], [15, 35, 70]),
+        achievements: [
+            { id: 'u4-a1', iconKey: 'book', level: 1, caption: 'Conversations' },
+            { id: 'u4-a2', iconKey: 'flame', level: 2, caption: 'Grind Streak' },
+            { id: 'u4-a3', iconKey: 'star', level: 1, caption: 'Positive Sentiment' },
+        ],
+    },
+    {
+        id: 'u5',
+        rank: 5,
+        name: 'Marcus Webb',
+        avatar: '🧑‍🦰',
+        level: 2,
+        points: 742,
+        deltaFromLastMonth: -1,
+        levelProgress: 35,
+        categories: ['Consistent Grinder'],
+        courses: coursesFor([3, 4, 5, 6], [20, 45, 60, 5]),
+        achievements: [
+            { id: 'u5-a1', iconKey: 'flame', level: 3, caption: 'Grind Streak' },
+            { id: 'u5-a2', iconKey: 'target', level: 1, caption: 'Talk to Listen Ratio' },
+            { id: 'u5-a3', iconKey: 'mic', level: 1, caption: 'Best Talk' },
+        ],
+    },
+    {
+        id: 'u6',
+        rank: 6,
+        name: 'Elena Petrova',
+        avatar: '👩‍🦳',
+        level: 2,
+        points: 705,
+        deltaFromLastMonth: 3,
+        levelProgress: 28,
+        categories: ['Best Talk'],
+        courses: coursesFor([0, 7], [30, 55]),
+        achievements: [
+            { id: 'u6-a1', iconKey: 'mic', level: 2, caption: 'Best Talk' },
+            { id: 'u6-a2', iconKey: 'book', level: 1, caption: 'Conversations' },
+        ],
+    },
+    {
+        id: 'u7',
+        rank: 7,
+        name: 'Jordan Lee',
+        avatar: '🧑‍🎓',
+        level: 1,
+        points: 640,
+        deltaFromLastMonth: 1,
+        levelProgress: 15,
+        categories: ['Fast Learner'],
+        courses: coursesFor([1, 5], [10, 25]),
+        achievements: [
+            { id: 'u7-a1', iconKey: 'star', level: 1, caption: 'Positive Sentiment' },
+            { id: 'u7-a2', iconKey: 'target', level: 1, caption: 'Talk to Listen Ratio' },
+        ],
+    },
+    {
+        id: 'u8',
+        rank: 8,
+        name: 'Priya Patel',
+        avatar: '👩‍🎓',
+        level: 1,
+        points: 588,
+        deltaFromLastMonth: -3,
+        levelProgress: 9,
+        categories: ['Consistent Grinder'],
+        courses: coursesFor([6], [5]),
+        achievements: [
+            { id: 'u8-a1', iconKey: 'flame', level: 1, caption: 'Grind Streak' },
+        ],
+    },
+];
