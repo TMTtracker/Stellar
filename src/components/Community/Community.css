@@ -1,0 +1,540 @@
+/* Main Section - mirrors the Courses/Leaderboard section conventions so
+   spacing, colors and scroll behavior stay consistent across pages. */
+.community-section {
+    --accent: #A8D79F;
+    --muted: #6A6F73;
+    --road-color: #6FAE7A;
+    --road-color-dark: #4C8C46;
+    --tooltip-bg: #585D61;
+    padding: 25px 15px 60px;
+    background: #effaf4;
+    margin-top: 90px;
+    margin-left: 78px;
+    min-height: 100vh;
+    scroll-margin-top: 110px;
+    box-sizing: border-box;
+}
+
+.community-container {
+    display: flex;
+    flex-direction: column;
+    gap: 40px;
+    max-width: 1080px;
+    margin: 0 auto;
+    width: 100%;
+}
+
+/* Welcome Banner */
+.community-banner {
+    background: linear-gradient(135deg, #8FCB8A 0%, #5FA36A 100%);
+    border-radius: 16px;
+    padding: 40px 32px;
+    text-align: center;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
+}
+
+.community-banner h1 {
+    font-size: 26px;
+    font-weight: 700;
+    color: #ffffff;
+    margin: 0 0 8px 0;
+}
+
+.community-banner p {
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.9);
+    margin: 0;
+    line-height: 1.5;
+}
+
+/* Road Wrapper - SVG path (desktop/tablet) with icons positioned by CSS vars
+   so the same markup can be re-laid-out vertically on mobile. */
+.community-road-wrapper {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1080 / 400;
+    margin-top: 20px;
+}
+
+.community-road-svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+.road-base {
+    fill: none;
+    stroke: var(--road-color);
+    stroke-width: 34;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.road-dash {
+    fill: none;
+    stroke: #ffffff;
+    stroke-width: 4;
+    stroke-linecap: round;
+    stroke-dasharray: 16 20;
+    opacity: 0.85;
+}
+
+/* Vertical track used only on mobile, hidden otherwise */
+.community-road-track {
+    display: none;
+}
+
+/* Road Stops */
+.road-stop {
+    position: absolute;
+    left: var(--x);
+    top: var(--y);
+    transform: translate(-50%, -50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    z-index: 2;
+}
+
+/* Each stop is its own stacking context (it's positioned with a z-index),
+   so without this, a later stop's icon paints over an earlier stop's open
+   tooltip regardless of the tooltip's own z-index. Bumping the whole stop
+   above its siblings while active guarantees its tooltip stays on top. */
+.road-stop:hover,
+.road-stop:focus-within {
+    z-index: 30;
+}
+
+.road-stop-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: #ffffff;
+    border: 3px solid var(--road-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--road-color-dark);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.14);
+    cursor: pointer;
+    transition: transform 0.25s, box-shadow 0.25s;
+    position: relative;
+}
+
+.road-stop:hover .road-stop-icon,
+.road-stop-icon:focus-visible {
+    transform: scale(1.08);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+}
+
+.road-stop-icon:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 4px rgba(168, 215, 159, 0.5), 0 6px 16px rgba(0, 0, 0, 0.2);
+}
+
+.road-stop-label {
+    font-size: 12px;
+    font-weight: 700;
+    color: #1F2225;
+    background: #ffffff;
+    padding: 3px 10px;
+    border-radius: 999px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+    white-space: nowrap;
+}
+
+/* Tooltip - opens clear of the icon: above it when the icon sits low on the
+   curve, below it when the icon sits high, so it never covers the icon. */
+.road-stop-tooltip {
+    position: absolute;
+    left: 50%;
+    width: 220px;
+    background: var(--tooltip-bg);
+    color: #ffffff;
+    border-radius: 14px;
+    padding: 16px 18px;
+    text-align: center;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s;
+    z-index: 10;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.26);
+}
+
+.road-stop-tooltip.pos-above {
+    bottom: 100%;
+    margin-bottom: 14px;
+    transform: translate(-50%, 6px) scale(0.9);
+}
+
+.road-stop-tooltip.pos-below {
+    top: 100%;
+    margin-top: 14px;
+    transform: translate(-50%, -6px) scale(0.9);
+}
+
+.road-stop-tooltip::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 7px solid transparent;
+}
+
+.road-stop-tooltip.pos-above::after {
+    top: 100%;
+    border-top-color: var(--tooltip-bg);
+}
+
+.road-stop-tooltip.pos-below::after {
+    bottom: 100%;
+    border-bottom-color: var(--tooltip-bg);
+}
+
+.road-stop-tooltip strong {
+    display: block;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #C9E8C4;
+    margin-bottom: 6px;
+}
+
+.road-stop-tooltip p {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.5;
+    color: #ffffff;
+}
+
+.road-stop:hover .road-stop-tooltip,
+.road-stop:focus-within .road-stop-tooltip {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+}
+
+.road-stop:hover .road-stop-tooltip.pos-above,
+.road-stop:focus-within .road-stop-tooltip.pos-above {
+    transform: translate(-50%, 0) scale(1);
+}
+
+.road-stop:hover .road-stop-tooltip.pos-below,
+.road-stop:focus-within .road-stop-tooltip.pos-below {
+    transform: translate(-50%, 0) scale(1);
+}
+
+/* Info Markers - floating icons off the road (About Us, etc.). Reuse
+   .road-stop / .road-stop-icon / .road-stop-label for the icon + caption,
+   but swap in a much bigger content card for the tooltip, sized to fit
+   real paragraphs and using the same gray as the step tooltips so every
+   dialogue on the page shares one color. */
+.info-marker-tooltip {
+    position: absolute;
+    width: 420px;
+    background: var(--tooltip-bg);
+    color: #ffffff;
+    border-radius: 16px;
+    overflow: hidden;
+    text-align: left;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s;
+    z-index: 10;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.3);
+}
+
+/* Vertical anchor */
+.info-marker-tooltip.pos-above {
+    bottom: 100%;
+    margin-bottom: 14px;
+}
+
+.info-marker-tooltip.pos-below {
+    top: 100%;
+    margin-top: 14px;
+}
+
+/* Horizontal anchor - opens away from the page edge the icon sits near,
+   instead of centering (which would push a 420px box off-screen). */
+.info-marker-tooltip.align-left {
+    left: 0;
+    transform: translateY(-6px) scale(0.92);
+}
+
+.info-marker-tooltip.align-right {
+    left: auto;
+    right: 0;
+    transform: translateY(-6px) scale(0.92);
+}
+
+.info-marker-tooltip.pos-above.align-left,
+.info-marker-tooltip.pos-above.align-right {
+    transform: translateY(6px) scale(0.92);
+}
+
+.road-stop:hover .info-marker-tooltip,
+.road-stop:focus-within .info-marker-tooltip {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+}
+
+.road-stop:hover .info-marker-tooltip.align-left,
+.road-stop:focus-within .info-marker-tooltip.align-left,
+.road-stop:hover .info-marker-tooltip.align-right,
+.road-stop:focus-within .info-marker-tooltip.align-right {
+    transform: translateY(0) scale(1);
+}
+
+.info-tooltip-heading {
+    padding: 18px 22px 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.info-tooltip-heading h2 {
+    margin: 0;
+    font-size: 19px;
+    font-weight: 700;
+    line-height: 1.3;
+    color: #ffffff;
+}
+
+.info-tooltip-body {
+    padding: 16px 22px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.info-tooltip-body p {
+    margin: 0;
+    font-size: 13.5px;
+    line-height: 1.65;
+    color: rgba(255, 255, 255, 0.88);
+}
+
+/* Responsive Design */
+@media (min-width: 1300px) {
+    .community-section {
+        padding: 40px 40px 70px;
+    }
+
+    .community-container {
+        max-width: 1200px;
+        gap: 48px;
+    }
+
+    .community-banner {
+        padding: 48px 40px;
+    }
+
+    .community-banner h1 {
+        font-size: 32px;
+    }
+
+    .community-banner p {
+        font-size: 14px;
+    }
+
+    .road-stop-icon {
+        width: 64px;
+        height: 64px;
+    }
+
+    .road-stop-tooltip {
+        width: 240px;
+        padding: 18px 20px;
+    }
+
+    .road-stop-tooltip p {
+        font-size: 14.5px;
+    }
+
+    .info-marker-tooltip {
+        width: 460px;
+    }
+}
+
+@media (min-width: 1024px) and (max-width: 1299px) {
+    .community-section {
+        padding: 25px 20px 60px;
+    }
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+    .community-section {
+        padding: 20px 15px 50px;
+    }
+
+    .community-banner {
+        padding: 32px 24px;
+    }
+
+    .community-banner h1 {
+        font-size: 22px;
+    }
+
+    .road-stop-icon {
+        width: 48px;
+        height: 48px;
+    }
+
+    .road-stop-label {
+        font-size: 11px;
+    }
+
+    .road-stop-tooltip {
+        width: 190px;
+        padding: 13px 15px;
+    }
+
+    .road-stop-tooltip p {
+        font-size: 13px;
+    }
+
+    .info-marker-tooltip {
+        width: 340px;
+    }
+}
+
+/* Mobile - swap the horizontal wave for a simple vertical path */
+@media (max-width: 767px) {
+    .community-section {
+        padding: 18px 12px 50px;
+        margin-top: 85px;
+        margin-left: 0;
+    }
+
+    .community-container {
+        gap: 28px;
+    }
+
+    .community-banner {
+        padding: 28px 18px;
+    }
+
+    .community-banner h1 {
+        font-size: 20px;
+    }
+
+    .community-banner p {
+        font-size: 12px;
+    }
+
+    .community-road-wrapper {
+        aspect-ratio: auto;
+        max-width: 280px;
+        margin: 0 auto;
+        padding: 10px 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .community-road-svg {
+        display: none;
+    }
+
+    .community-road-track {
+        display: block;
+        position: absolute;
+        top: 38px;
+        bottom: 38px;
+        left: 50%;
+        width: 14px;
+        transform: translateX(-50%);
+        background: var(--road-color);
+        border-radius: 8px;
+        z-index: 0;
+    }
+
+    .community-road-track-dash {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 50%;
+        width: 3px;
+        transform: translateX(-50%);
+        background-image: repeating-linear-gradient(to bottom, #ffffff 0 10px, transparent 10px 20px);
+        opacity: 0.85;
+    }
+
+    .road-stop {
+        position: relative;
+        left: auto;
+        top: auto;
+        transform: none;
+        z-index: 1;
+        margin: 0 auto 64px;
+    }
+
+    .road-stop:last-child {
+        margin-bottom: 0;
+    }
+
+    .road-stop-tooltip {
+        width: 200px;
+    }
+
+    /* Keep every tooltip opening downward in the vertical list - reads more
+       naturally than alternating above/below a single column. */
+    .road-stop-tooltip.pos-above {
+        top: 100%;
+        bottom: auto;
+        margin-top: 14px;
+        margin-bottom: 0;
+        transform: translate(-50%, -6px) scale(0.9);
+    }
+
+    .road-stop-tooltip.pos-above::after {
+        top: auto;
+        bottom: 100%;
+        border-top-color: transparent;
+        border-bottom-color: var(--tooltip-bg);
+    }
+
+    .road-stop:hover .road-stop-tooltip.pos-above,
+    .road-stop:focus-within .road-stop-tooltip.pos-above {
+        transform: translate(-50%, 0) scale(1);
+    }
+
+    .info-marker-tooltip {
+        width: 260px;
+    }
+
+    .info-marker-tooltip.pos-above {
+        top: 100%;
+        bottom: auto;
+        margin-top: 14px;
+        margin-bottom: 0;
+    }
+
+    /* The left/right page-edge anchoring only makes sense in the wide
+       horizontal layout - recenter on the narrow mobile column instead,
+       same as the step tooltips. */
+    .info-marker-tooltip.align-left,
+    .info-marker-tooltip.align-right {
+        left: 50%;
+        right: auto;
+        transform: translate(-50%, -6px) scale(0.92);
+    }
+
+    .info-marker-tooltip.pos-above.align-left,
+    .info-marker-tooltip.pos-above.align-right {
+        transform: translate(-50%, 6px) scale(0.92);
+    }
+
+    .road-stop:hover .info-marker-tooltip.align-left,
+    .road-stop:focus-within .info-marker-tooltip.align-left,
+    .road-stop:hover .info-marker-tooltip.align-right,
+    .road-stop:focus-within .info-marker-tooltip.align-right {
+        transform: translate(-50%, 0) scale(1);
+    }
+}
