@@ -1,149 +1,130 @@
-.sidebar{
+.sidebar {
+    position: fixed;
 
-    position:fixed;
+    left: 0;
+    top: 0;
 
-    left:0;
-    top:0;
+    width: 80px;
+    height: 100vh;
 
-    width:78px;
-    height:100vh;
+    background: #f8faf8;
 
-    background:#f8faf8;
+    border-right: 1px solid #e6ebe6;
 
-    border-right:1px solid #E6EBE6;
-
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    z-index:20;
-
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    z-index: 20;
 }
 
+.sidebar-logo {
+    width: 46px;
+    height: 46px;
 
+    margin-top: 22px;
 
-.sidebar-logo{
+    border-radius: 12px;
 
-    width:46px;
-    height:46px;
-
-    margin-top:22px;
-
-    border-radius:12px;
-
-    display:flex;
-    justify-content:center;
-    align-items:center;
-
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
-.sidebar-logo img{
+.sidebar-logo img {
+    width: 60px;
+    height: 60px;
 
-    width:60px;
-    height:60px;
-
-    object-fit:contain;
-
+    object-fit: contain;
 }
 
+.sidebar-nav {
+    margin-top: 55px;
 
-.sidebar-nav{
-
-    margin-top:55px;
-
-    display:flex;
-    flex-direction:column;
-    gap:18px;
-
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
 }
 
-.nav-button{
-    position:relative;
+.nav-button {
+    position: relative;
 
-    width:46px;
-    height:46px;
+    width: 46px;
+    height: 46px;
 
-    border:none;
+    border: none;
 
-    background:transparent;
+    background: transparent;
 
-    border-radius:12px;
+    border-radius: 12px;
 
-    display:flex;
-    justify-content:center;
-    align-items:center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 
-    cursor:pointer;
+    cursor: pointer;
 
-    color:#303030;
+    color: #303030;
 
-    transition:0.25s;
+    transition: 0.25s;
 }
 
-.nav-button:hover{
-
-    background:#E8EEE8;
-
+.nav-button:hover {
+    background: #e8eee8;
 }
 
-.nav-button.active{
-
-    background:#232629;
-    color:white;
+.nav-button.active {
+    background: #232629;
+    color: white;
 }
 
-.tooltip{
+.tooltip {
+    position: absolute;
 
-    position:absolute;
+    left: 58px;
+    top: 50%;
 
-    left:58px;
-    top:50%;
+    transform: translateY(-50%) translateX(-10px);
 
-    transform:translateY(-50%) translateX(-10px);
+    background: #232629;
+    color: white;
 
-    background:#232629;
-    color:white;
+    padding: 8px 14px;
 
-    padding:8px 14px;
+    border-radius: 10px;
 
-    border-radius:10px;
+    white-space: nowrap;
 
-    white-space:nowrap;
+    opacity: 0;
+    visibility: hidden;
 
-    opacity:0;
-    visibility:hidden;
+    transition: 0.25s;
 
-    transition:0.25s;
+    pointer-events: none;
 
-    pointer-events:none;
-
-    z-index:1000;
+    z-index: 1000;
 }
 
-.nav-button:hover .tooltip{
+.nav-button:hover .tooltip {
+    opacity: 1;
+    visibility: visible;
 
-    opacity:1;
-    visibility:visible;
-
-    transform:translateY(-50%) translateX(0);
-
+    transform: translateY(-50%) translateX(0);
 }
 
-.tooltip::before{
+.tooltip::before {
+    content: '';
 
-    content:"";
+    position: absolute;
 
-    position:absolute;
+    left: -6px;
+    top: 50%;
 
-    left:-6px;
-    top:50%;
+    transform: translateY(-50%);
 
-    transform:translateY(-50%);
+    width: 12px;
+    height: 12px;
 
-    width:12px;
-    height:12px;
+    background: #232629;
 
-    background:#232629;
-
-    rotate:45deg;
-
+    rotate: 45deg;
 }

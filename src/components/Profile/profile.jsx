@@ -1,15 +1,9 @@
 function Profile() {
-
     return (
-
-        <div className="profile" id="profile">
-
+        <div id='profile' className='min-h-screen scroll-mt-27.5'>
             <h1>Profile</h1>
-
         </div>
-
-    );
-
+    )
 }
 
-export default Profile;
+export default Profile
