@@ -1,0 +1,542 @@
+/* Course Material - a full-page "chapter" view that pops up over the
+   Courses page when a course card is clicked. Follows the same
+   overlay/backdrop/panel/close pattern as AuthModal.css, just sized as a
+   large near-fullscreen panel instead of a small centered card. */
+
+.cm-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    display: flex;
+    padding: 114px 24px 24px 102px;
+}
+
+.cm-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(14, 20, 16, 0.5);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    opacity: 0;
+    transition: opacity 200ms ease-out;
+}
+
+.cm-backdrop.is-visible {
+    opacity: 1;
+}
+
+.cm-panel {
+    position: relative;
+    width: 100%;
+    max-width: 1400px;
+    margin: 0 auto;
+    max-height: 100%;
+    overflow-y: auto;
+    background: #DCEFD6;
+    color: #1F2225;
+    border-radius: 28px;
+    box-shadow: 0 30px 60px rgba(0, 0, 0, 0.3);
+    opacity: 0;
+    transform: scale(0.97) translateY(10px);
+    transition: opacity 200ms ease-out, transform 200ms ease-out;
+}
+
+.cm-panel.is-visible {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+}
+
+.cm-close {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border: none;
+    border-radius: 999px;
+    background: #ffffff;
+    color: #1F2225;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+    transition: background 150ms, color 150ms;
+}
+
+.cm-close:hover {
+    background: #f3f4f6;
+}
+
+.cm-main {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Top bar */
+.cm-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 24px 60px 24px 40px;
+    gap: 16px;
+}
+
+.cm-topbar-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.cm-brand {
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    font-size: 18px;
+    line-height: 1;
+    margin: 0;
+}
+
+.cm-subtitle {
+    color: #6A6F73;
+    font-size: 14px;
+    margin: 4px 0 0 0;
+}
+
+.cm-percent-pill {
+    background: #A9D8AE;
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 700;
+    padding: 8px 20px;
+    border-radius: 999px;
+    white-space: nowrap;
+}
+
+/* Content grid */
+.cm-content-grid {
+    display: grid;
+    grid-template-columns: 220px 1fr 260px;
+    gap: 24px;
+    padding: 0 40px 24px;
+    align-items: start;
+}
+
+.cm-eyebrow {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    color: #6A6F73;
+    margin: 0 0 12px 0;
+}
+
+.cm-eyebrow-progress {
+    margin-top: 24px;
+    margin-bottom: 8px;
+}
+
+.cm-eyebrow-world {
+    margin-top: 24px;
+    margin-bottom: 12px;
+}
+
+/* Chapters aside */
+.cm-chapters {
+    background: #DCEFD6;
+    border-radius: 16px;
+    padding: 20px;
+    border: 1px solid #C9DDC4;
+}
+
+.cm-chapter-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.cm-chapter-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.cm-status-dot {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.cm-status-done {
+    background: #A9D8AE;
+}
+
+.cm-status-icon {
+    color: #ffffff;
+}
+
+.cm-status-current {
+    border: 2px solid #A9D8AE;
+}
+
+.cm-status-current-inner {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #A9D8AE;
+}
+
+.cm-status-upcoming {
+    border: 2px solid #BFD3BA;
+}
+
+.cm-status-upcoming-inner {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #D8E1DA;
+}
+
+.cm-chapter-name {
+    font-size: 14px;
+    font-weight: 500;
+    color: #1F2225;
+}
+
+.cm-chapter-name.is-current {
+    font-weight: 700;
+}
+
+.cm-chapter-name.is-upcoming {
+    color: #B4BEB6;
+    font-weight: 400;
+}
+
+.cm-progress-track {
+    width: 100%;
+    height: 8px;
+    border-radius: 999px;
+    background: #D1E5CC;
+    overflow: hidden;
+}
+
+.cm-progress-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: #A9D8AE;
+}
+
+.cm-progress-text {
+    font-size: 12px;
+    color: #6A6F73;
+    margin: 8px 0 0 0;
+}
+
+/* Main body */
+.cm-body {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    min-width: 0;
+}
+
+.cm-chapter-tag {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    color: #A9D8AE;
+    margin: 0 0 4px 0;
+}
+
+.cm-page-title {
+    font-size: 36px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    margin: 0;
+}
+
+.cm-cards-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.cm-card {
+    background: #DCEFD6;
+    border-radius: 16px;
+    padding: 20px;
+    border: 1px solid #C9DDC4;
+}
+
+.cm-card-title {
+    font-weight: 700;
+    margin: 0 0 8px 0;
+}
+
+.cm-concepts-title {
+    margin-bottom: 12px;
+}
+
+.cm-card-text {
+    font-size: 14px;
+    color: #6A6F73;
+    line-height: 1.6;
+    margin: 0;
+}
+
+.cm-concepts-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.cm-concept-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: #3F4448;
+}
+
+.cm-concept-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #A9D8AE;
+    flex-shrink: 0;
+}
+
+/* Rewards aside */
+.cm-rewards {
+    background: #DCEFD6;
+    border-radius: 16px;
+    padding: 20px;
+    border: 1px solid #C9DDC4;
+}
+
+.cm-rewards-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.cm-reward-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #DCEFD6;
+    border-radius: 12px;
+    padding: 10px 12px;
+}
+
+.cm-reward-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.cm-reward-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    background: #ffffff;
+    border: 1px solid #C9DDC4;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #3F4448;
+}
+
+.cm-reward-name {
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.cm-reward-unlocked {
+    color: #A9D8AE;
+}
+
+.cm-reward-locked {
+    color: #B4BEB6;
+}
+
+.cm-world-card {
+    background: #DCEFD6;
+    border-radius: 12px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.cm-world-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: #141814;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 8px;
+}
+
+.cm-world-level {
+    font-size: 14px;
+    font-weight: 700;
+    margin: 0 0 8px 0;
+}
+
+.cm-world-card .cm-progress-track {
+    margin-bottom: 6px;
+}
+
+.cm-world-percent {
+    font-size: 12px;
+    color: #6A6F73;
+    margin: 0;
+}
+
+/* Quiz section */
+.cm-quiz {
+    padding: 16px 40px 64px;
+}
+
+.cm-quiz-inner {
+    max-width: 640px;
+    margin: 0 auto;
+    text-align: center;
+}
+
+.cm-quiz-eyebrow {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    color: #A9D8AE;
+    margin: 0 0 8px 0;
+}
+
+.cm-quiz-question {
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    margin: 0 0 24px 0;
+}
+
+.cm-options-row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+.cm-option-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    border-radius: 999px;
+    border: 1px solid #C9DDC4;
+    background: #ffffff;
+    color: #6A6F73;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: border-color 150ms, background 150ms, color 150ms;
+}
+
+.cm-option-btn:hover {
+    border-color: #B7CDB1;
+}
+
+.cm-option-btn.is-selected {
+    border-color: #A9D8AE;
+    background: #DDF0E1;
+    color: #1F2225;
+}
+
+.cm-option-badge {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 1px solid #BFD3BA;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    color: #6A6F73;
+    flex-shrink: 0;
+}
+
+.cm-option-badge.is-selected {
+    border-color: #A9D8AE;
+    color: #A9D8AE;
+}
+
+.cm-submit-btn {
+    background: #A9D8AE;
+    color: #ffffff;
+    font-weight: 700;
+    font-size: 14px;
+    padding: 14px 32px;
+    border: none;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: background 150ms;
+}
+
+.cm-submit-btn:hover:not(:disabled) {
+    background: #98CD9E;
+}
+
+.cm-submit-btn:disabled {
+    background: #CFE7D2;
+    cursor: not-allowed;
+}
+
+/* Responsive */
+@media (max-width: 1023px) {
+    .cm-content-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 767px) {
+    .cm-overlay {
+        padding: 100px 12px 12px;
+    }
+
+    .cm-topbar {
+        padding: 20px 48px 16px 20px;
+    }
+
+    .cm-content-grid {
+        padding: 0 20px 20px;
+    }
+
+    .cm-cards-row {
+        grid-template-columns: 1fr;
+    }
+
+    .cm-page-title {
+        font-size: 28px;
+    }
+
+    .cm-quiz {
+        padding: 12px 20px 40px;
+    }
+}

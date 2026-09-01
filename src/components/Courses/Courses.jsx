@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import './Courses.css';
 import { GraduationCap, BookOpenCheck, Award, Clock, Users, Library, CheckCircle2 } from 'lucide-react';
+import CourseMaterial from './CourseMaterial';
 
 const coursesData = [
     {
@@ -62,6 +64,8 @@ const instructorsData = [
 ];
 
 function Courses() {
+    const [activeCourse, setActiveCourse] = useState(null);
+
     return (
         <section className="courses-section" id="courses">
             <div className="courses-container">
@@ -85,7 +89,19 @@ function Courses() {
 
                         <div className="courses-grid-3col">
                             {coursesData.map((course, i) => (
-                                <article className="course-card-grid" key={i}>
+                                <article
+                                    className="course-card-grid"
+                                    key={i}
+                                    onClick={() => setActiveCourse(course)}
+                                    role="button"
+                                    tabIndex={0}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter' || e.key === ' ') {
+                                            e.preventDefault();
+                                            setActiveCourse(course);
+                                        }
+                                    }}
+                                >
                                     <div className="course-card-image" style={{ background: course.bgGradient }}>
                                     </div>
                                     <div className="course-card-content">
@@ -232,6 +248,10 @@ function Courses() {
                     </div>
                 </aside>
             </div>
+
+            {activeCourse && (
+                <CourseMaterial course={activeCourse} onClose={() => setActiveCourse(null)} />
+            )}
         </section>
     );
 }
