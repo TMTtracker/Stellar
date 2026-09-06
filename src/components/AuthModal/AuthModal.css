@@ -195,6 +195,31 @@
   color: #5fa85c;
 }
 
+.authmodal-submit:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.authmodal-error {
+  font-size: 13px;
+  color: #d9605b;
+  background: #fdeeee;
+  border: 1px solid #f5c6c3;
+  border-radius: 12px;
+  padding: 10px 14px;
+  margin: 0;
+}
+
+.authmodal-info {
+  font-size: 13px;
+  color: #2f7a33;
+  background: #eaf6eb;
+  border: 1px solid #bfe3c2;
+  border-radius: 12px;
+  padding: 10px 14px;
+  margin: 0;
+}
+
 @media (max-width: 480px) {
   .authmodal-card {
     padding: 24px;

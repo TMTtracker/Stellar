@@ -1,5 +1,6 @@
-import { Link, NavLink, useLocation } from 'react-router-dom'
-import { BookOpen, Users, Home as House, Zap } from 'lucide-react'
+import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
+import { BookOpen, Users, Home as House, Zap, LogOut } from 'lucide-react'
+import { useAuth } from '@/hooks/useAuth'
 
 const navItems = [
     { to: '/dashboard', icon: House, label: 'Dashboard' },
@@ -9,8 +10,25 @@ const navItems = [
 
 function ProtectedLayout({ children }) {
     const location = useLocation()
+    const navigate = useNavigate()
+    const { user, signOut } = useAuth()
 
     const isDashboard = location.pathname.startsWith('/dashboard')
+
+    const initials = (() => {
+        const name = user?.user_metadata?.full_name || user?.email || 'ST'
+        const parts = name.split(/[@\s]+/).filter(Boolean)
+        return (parts[0]?.[0] || 'S').toUpperCase() + (parts[1]?.[0] || '').toUpperCase()
+    })()
+
+    async function handleLogout() {
+        try {
+            await signOut()
+            navigate('/')
+        } catch (e) {
+            console.error('[auth] sign out failed:', e.message)
+        }
+    }
 
     return (
         <div className='min-h-screen bg-[#DCEFD6] text-[#1F2225] flex' style={{ fontFamily: 'Arial, Helvetica, sans-serif' }}>
@@ -46,7 +64,10 @@ function ProtectedLayout({ children }) {
                                 <Zap size={16} className='text-[#A9D8AE]' />
                                 <span className='text-sm font-bold'>1,240 XP</span>
                             </div>
-                            <div className='w-10 h-10 rounded-full bg-[#141814] text-white flex items-center justify-center font-bold'>/ MA</div>
+                            <div className='w-10 h-10 rounded-full bg-[#141814] text-white flex items-center justify-center font-bold text-xs' title={user?.email || ''}>{initials}</div>
+                            <button onClick={handleLogout} aria-label='Log out' title='Log out' className='w-10 h-10 rounded-full bg-white border border-[#C9DDC4] text-[#6A6F73] flex items-center justify-center hover:border-[#D9605B] hover:text-[#D9605B] transition-colors'>
+                                <LogOut size={16} />
+                            </button>
                         </div>
                     </header>
                 )}
