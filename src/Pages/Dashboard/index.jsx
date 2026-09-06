@@ -3,6 +3,7 @@ import { Backpack, Trophy, Map, ShoppingBag, BookOpen, Bell, Settings, Flame, Za
 import ProtectedLayout from '@/components/ProtectedLayout/ProtectedLayout'
 import GameWorld from '@/components/GameWorld/GameWorld'
 import { useNavigate } from 'react-router-dom'
+import { useWallet } from '@/hooks/useWallet'
 import { DollarSign } from 'lucide-react'
 
 const streak = 9
@@ -98,8 +99,6 @@ const buildItems = [
     }
 ]
 
-const coins = 1240
-
 const buildMaterials = [
     { icon: BrickWall, name: 'Bricks', count: 11 },
     { icon: Logs, name: 'Timber', count: 14 },
@@ -123,6 +122,7 @@ const consumables = [
 export default function Dashboard() {
     const navigate = useNavigate()
     const [showInventory, setShowInventory] = useState(false)
+    const { coins, level, pct } = useWallet()
 
     // success / danger token colors
     const statusColor = ok => (ok ? 'text-[#A9D8AE]' : 'text-[#D9605B]')
@@ -139,9 +139,9 @@ export default function Dashboard() {
                 <div className='absolute top-4 left-4 flex items-center gap-2.5 bg-white/95 border border-[#C9DDC4] rounded-xl px-3 py-2 shadow-sm'>
                     <div className='w-9 h-9 rounded-full bg-[#141814] text-white flex items-center justify-center text-xs font-bold'>MA</div>
                     <div>
-                        <div className='text-sm font-bold leading-none'>Sayok · Lv 12</div>
+                        <div className='text-sm font-bold leading-none'>Sayok · Lv {level}</div>
                         <div className='w-28 h-1.5 rounded-full bg-[#EAF2E6] mt-2 overflow-hidden'>
-                            <div className='h-full bg-[#A9D8AE] rounded-full' style={{ width: '64%' }} />
+                            <div className='h-full bg-[#A9D8AE] rounded-full' style={{ width: `${pct}%` }} />
                         </div>
                     </div>
                     <div className='flex items-center gap-1.5 text-sm font-bold text-[#E8933E] border-l border-[#C9DDC4] pl-2.5 ml-0.5'>
@@ -198,7 +198,7 @@ export default function Dashboard() {
                     {/* Inventory — replaces the money indicator */}
                     <button aria-label='Inventory' onClick={() => navigate('/shop')} className='relative flex items-center gap-2 bg-white/95 border border-[#C9DDC4] rounded-xl px-3 py-1.5 hover:border-[#A9D8AE] transition-colors'>
                         <DollarSign size={16} className='text-[#A9D8AE]' />
-                        <span className='text-sm font-bold'>1246</span>
+                        <span className='text-sm font-bold'>{coins.toLocaleString()}</span>
                     </button>
                     <button aria-label='Inventory' onClick={() => setShowInventory(true)} className='relative flex items-center gap-2 bg-white/95 border border-[#C9DDC4] rounded-xl px-3 py-1.5 hover:border-[#A9D8AE] transition-colors'>
                         <Backpack size={16} className='text-[#A9D8AE]' />
