@@ -1,0 +1,187 @@
+A GAMIFIED 3D LEARNING PLATFORM
+ WITH LLM-ASSISTED EDUCATIONAL
+                     SUPPORT
+
+STELLAR
+
+        Course: Software Engineering Lab
+        Faculty: Muhaiminul Islam Nafi
+
+                         Section: B
+     OOuurr T Teeaamm
+
+Mahedi Hasan Masud 011 202 068
+Tamim Mirza Tulak 011221518
+Fayjul Alam 0112231074
+Quazi Nazib Zaman 0112320230
+Fouzia Jahan Dhola 0112320182
+          IInnttrrooddu uccttiioonn
+
+                                What is STELLAR?
+
+STELLAR is a modern web-based learning platform that combines:
+     AI-assisted learning
+     Gamification
+     Interactive 3D virtual world
+     Personalized educational support
+
+ Visuals
+
+      LMS icon
+      AI icon
+      3D World image
+      XP/Game icon
+Problem Definition               Problem                   Visual
+
+                                Statement
+
+                                     Our Solution
+
+Current               Learning  STELLAR       transforms   Before vs After
+                                                           Traditional LMS  STELLAR
+Management Systems have         learning into an engaging
+
+several limitations:            experience through:
+
+Low                   student   AI
+
+engagement                      Gamification
+
+Learning mostly before          3D Progression
+
+exams
+
+Limited motivation
+
+Lack of visual progress
+
+Minimal AI-assisted
+
+support
+            Objectives &
+
+            Motivation
+Objectives               Motivation
+
+Increase    learning     Learning should become:
+
+engagement                Fun
+                          Interactive
+Encourage daily study     Rewarding
+                          Continuous
+habits
+                         instead of only exam-
+Provide AI learning
+                         focused.
+assistance
+
+Track progress visually
+
+Make        learning
+
+enjoyable
+                   System Features
+
+                                Core Features
+
+User Management Learning Module           AI Learning      Gamification
+
+Registration       Browse Courses     Summaries            XP
+Login              Study Materials    MCQs                 Coins
+User Profile       Course Dashboard   Coding Challenges    Levels
+Course Enrollment  Progress Tracking  Interview Questions  Achievements
+                                                           Leaderboards
+
+3D World
+
+Buildings
+World Progression
+Customization
+System Architecture
+
+                   User
+                React Frontend
+             REST API / Supabase
+            PostgreSQL Database
+               Authentication
+               LLM AI Services
+
+                          Three.js 3D Engine
+          Technology Stack
+
+               Tools & Technologies
+
+Frontend  Backend     AI      3D         Development
+
+React     Supabase    Python  Three.js   Git
+Vite      PostgreSQL
+HTML      JavaScript  LLM     React Three Fiber GitHub
+CSS
+                      Web Scraping Drei  VS Code
+
+                                         Figma
+Unique Features
+
+  Why STELLAR is Different?
+
+AI Learning Support       Gamification  Persistent 3D World
+
+Automatic Summaries    XP               Show a simple flow:
+Practice MCQs          Coins
+Coding Challenges      Levels           Study
+Interview Preparation  Rewards          Gain XP
+                                        Unlock Buildings
+
+                                        Customize World
+Strengths & Challenges
+
+Strengths        Challenges
+
+  Interactive       Internet
+  learning          dependency
+  AI assistance     LLM accuracy
+  Continuous        Resource
+  motivation        maintenance
+  Personalized      Higher
+  progression       development
+  Scalable          complexity
+  cloud system      3D
+                    performance
+                    requirements
+Development Timeline
+
+                            PhaseWeeks
+                            UI/UX Design
+
+                                   1­2
+                               Frontend
+
+                                   2­3
+                               Backend
+
+                                   3­6
+                              AI Module
+
+                                   6­8
+                               3D World
+
+                                  8­10
+                            Gamification
+
+                                 10­13
+                             Final Demo
+
+                               Week 14
+System Architecture
+
+                   User
+                React Frontend
+             REST API / Supabase
+            PostgreSQL Database
+               Authentication
+               LLM AI Services
+
+                          Three.js 3D Engine
+THANK
+ YOU!
+
