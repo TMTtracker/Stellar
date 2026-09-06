@@ -6,20 +6,56 @@ import Leaderboard from '@/components/Leaderboard/Leaderboard'
 import Shop from '@/Pages/Shop'
 import { Outlet, Route, Routes } from 'react-router-dom'
 import CourseShow from '@/Pages/Courses/show'
+import RequireAuth from '@/components/RequireAuth'
 
 function App() {
     return (
         <Routes>
             <Route path='/' element={<Landing />} />
 
-            <Route path='/dashboard' element={<Dashboard />} />
-            <Route path='/courses' element={<Outlet />}>
+            <Route
+                path='/dashboard'
+                element={
+                    <RequireAuth>
+                        <Dashboard />
+                    </RequireAuth>
+                }
+            />
+            <Route
+                path='/courses'
+                element={
+                    <RequireAuth>
+                        <Outlet />
+                    </RequireAuth>
+                }
+            >
                 <Route index element={<Courses />} />
                 <Route path='show' element={<CourseShow />} />
             </Route>
-            <Route path='/communities' element={<Communities />} />
-            <Route path='/leaderboard' element={<Leaderboard />} />
-            <Route path='/shop' element={<Shop />} />
+            <Route
+                path='/communities'
+                element={
+                    <RequireAuth>
+                        <Communities />
+                    </RequireAuth>
+                }
+            />
+            <Route
+                path='/leaderboard'
+                element={
+                    <RequireAuth>
+                        <Leaderboard />
+                    </RequireAuth>
+                }
+            />
+            <Route
+                path='/shop'
+                element={
+                    <RequireAuth>
+                        <Shop />
+                    </RequireAuth>
+                }
+            />
         </Routes>
     )
 }
