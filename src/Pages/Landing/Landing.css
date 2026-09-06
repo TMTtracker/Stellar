@@ -1,44 +1,41 @@
-.landing-main{
+.hero-main {
+    margin-top: 90px;
 
-    margin-left:78px;
-    margin-top:90px;
+    min-height: calc(100vh - 90px);
 
-    padding:60px;
+    display: grid;
 
-    min-height:calc(100vh - 90px);
+    grid-template-columns: 500px 1fr;
 
-    display:grid;
+    gap: 80px;
 
-    grid-template-columns:500px 1fr;
-
-    gap:80px;
-
-    align-items:center;
-     margin-bottom:120px;
+    align-items: center;
+    margin-bottom: 120px;
 }
 
+/* .courses,
+.leaderboard,
+.community,
+.profile {
+
+    margin-left: 78px;
+
+    padding: 80px 60px;
+
+    min-height: 100vh;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+
+} */
+
+/* .hero,
 .courses,
 .leaderboard,
 .community,
-.profile{
+.profile {
 
-    margin-left:78px;
+    scroll-margin-top: 110px;
 
-    padding:80px 60px;
-
-    min-height:100vh;
-
-    display:flex;
-    flex-direction:column;
-    justify-content:center;
-
-}
-.hero,
-.courses,
-.leaderboard,
-.community,
-.profile{
-
-    scroll-margin-top:110px;
-
-}
+} */
