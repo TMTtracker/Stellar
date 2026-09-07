@@ -1,6 +1,7 @@
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
-import { BookOpen, Users, Home as House, Zap, LogOut } from 'lucide-react'
+import { BookOpen, Users, Home as House, Zap, Coins, LogOut } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
+import { useWallet } from '@/hooks/useWallet'
 
 const navItems = [
     { to: '/dashboard', icon: House, label: 'Dashboard' },
@@ -12,6 +13,7 @@ function ProtectedLayout({ children }) {
     const location = useLocation()
     const navigate = useNavigate()
     const { user, signOut } = useAuth()
+    const { xp, coins } = useWallet()
 
     const isDashboard = location.pathname.startsWith('/dashboard')
 
@@ -60,9 +62,13 @@ function ProtectedLayout({ children }) {
                         </div>
 
                         <div className='flex items-center gap-4'>
-                            <div className='flex items-center gap-2 bg-white border border-[#C9DDC4] px-4 py-2 rounded-full'>
+                            <div className='flex items-center gap-2 bg-white border border-[#C9DDC4] px-4 py-2 rounded-full' title='Lifetime XP'>
                                 <Zap size={16} className='text-[#A9D8AE]' />
-                                <span className='text-sm font-bold'>1,240 XP</span>
+                                <span className='text-sm font-bold'>{xp.toLocaleString()} XP</span>
+                            </div>
+                            <div className='flex items-center gap-2 bg-white border border-[#C9DDC4] px-4 py-2 rounded-full' title='Spendable coins'>
+                                <Coins size={16} className='text-[#E8933E]' />
+                                <span className='text-sm font-bold'>{coins.toLocaleString()}</span>
                             </div>
                             <div className='w-10 h-10 rounded-full bg-[#141814] text-white flex items-center justify-center font-bold text-xs' title={user?.email || ''}>{initials}</div>
                             <button onClick={handleLogout} aria-label='Log out' title='Log out' className='w-10 h-10 rounded-full bg-white border border-[#C9DDC4] text-[#6A6F73] flex items-center justify-center hover:border-[#D9605B] hover:text-[#D9605B] transition-colors'>
