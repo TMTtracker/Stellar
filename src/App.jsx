@@ -6,6 +6,7 @@ import Leaderboard from '@/components/Leaderboard/Leaderboard'
 import Shop from '@/Pages/Shop'
 import { Outlet, Route, Routes } from 'react-router-dom'
 import CourseShow from '@/Pages/Courses/show'
+import LessonShow from '@/Pages/Lessons/show'
 import RequireAuth from '@/components/RequireAuth'
 
 function App() {
@@ -30,6 +31,9 @@ function App() {
                 }
             >
                 <Route index element={<Courses />} />
+                <Route path=':courseId' element={<CourseShow />} />
+                <Route path=':courseId/lessons/:lessonId' element={<LessonShow />} />
+                {/* legacy static route */}
                 <Route path='show' element={<CourseShow />} />
             </Route>
             <Route
