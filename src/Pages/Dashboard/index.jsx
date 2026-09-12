@@ -11,35 +11,21 @@ import { DollarSign } from 'lucide-react'
 
 const streak = 9
 
-const dailyLessons = [
-    {
-        title: 'Arrays and lists',
-        meta: '12 min · easy',
-        rewards: [
-            { icon: Zap, label: '40 XP', color: 'text-[#A9D8AE]' },
-            { icon: Banknote, label: '15', color: 'text-[#E8933E]' },
-            { icon: BrickWall, label: '2', color: 'text-[#6A6F73]' }
-        ]
-    },
-    {
-        title: 'Linked lists',
-        meta: '18 min · medium',
-        rewards: [
-            { icon: Zap, label: '60 XP', color: 'text-[#A9D8AE]' },
-            { icon: Banknote, label: '20', color: 'text-[#E8933E]' },
-            { icon: BrickWall, label: '3', color: 'text-[#6A6F73]' }
-        ]
-    },
-    {
-        title: 'Binary trees',
-        meta: '25 min · hard',
-        rewards: [
-            { icon: Zap, label: '90 XP', color: 'text-[#A9D8AE]' },
-            { icon: Banknote, label: '30', color: 'text-[#E8933E]' },
-            { icon: TreeDeciduous, label: '1 rare', color: 'text-[#6A6F73]' }
-        ]
-    }
-]
+const materialIconMap = {
+    'bricks': BrickWall,
+    'timber': TreeDeciduous,
+    'rare gem': Gem,
+    'rare gems': Gem,
+    'stone': Mountain,
+    'iron': Pickaxe,
+    'glass': Beaker,
+    'crystal shard': Lightbulb,
+    'fabric': Feather
+}
+
+function materialIcon(name) {
+    return materialIconMap[(name ?? '').toLowerCase()] ?? BrickWall
+}
 
 const friends = [
     { initials: 'TM', cls: 'bg-[#A9D8AE]' },
@@ -165,29 +151,52 @@ export default function Dashboard() {
                 {/* Top-left: Daily lessons panel */}
                 <div className='absolute top-[84px] left-4 w-[280px] bg-white/95 border border-[#C9DDC4] rounded-xl px-4 py-4 shadow-sm'>
                     <p className='text-[11px] font-bold tracking-wider text-[#6A6F73] mb-3'>DAILY LESSONS</p>
-                    <ul className='divide-y divide-[#C9DDC4]'>
-                        {dailyLessons.map(lesson => (
-                            <li key={lesson.title} className='py-3'>
-                                <div className='flex items-center justify-between mb-2'>
-                                    <div>
-                                        <p className='text-[13px] font-medium text-[#1F2225] leading-none'>{lesson.title}</p>
-                                        <p className='text-[12px] text-[#6A6F73] mt-1'>{lesson.meta}</p>
-                                    </div>
-                                    <div className='flex items-center gap-2.5 text-[12px]'>
-                                        {lesson.rewards.map(r => {
-                                            const R = r.icon
-                                            return (
-                                                <span key={r.label} className='flex items-center gap-1'>
-                                                    <R size={14} className={r.color} />
-                                                    {r.label}
-                                                </span>
-                                            )
-                                        })}
-                                    </div>
-                                </div>
-                            </li>
-                        ))}
-                    </ul>
+                    {dailyLoading && <p className='text-[12px] text-[#6A6F73] py-3'>Loading lessons…</p>}
+                    {!dailyLoading && dailyError && <p className='text-[12px] text-[#D9605B] py-3'>{dailyError}</p>}
+                    {!dailyLoading && !dailyError && dailyLessons.length === 0 && (
+                        <p className='text-[12px] text-[#6A6F73] py-3'>No lessons yet — check back soon.</p>
+                    )}
+                    {!dailyLoading && !dailyError && dailyLessons.length > 0 && (
+                        <ul className='divide-y divide-[#C9DDC4]'>
+                            {dailyLessons.map(lesson => {
+                                const MaterialIcon = materialIcon(lesson.material_name)
+                                return (
+                                    <li key={lesson.id} className='py-3'>
+                                        <button
+                                            className='w-full text-left hover:opacity-80 transition-opacity'
+                                            onClick={() => navigate(`/courses/${lesson.course_id}/lessons/${lesson.id}`)}
+                                        >
+                                            <div className='flex items-center justify-between mb-1'>
+                                                <div className='min-w-0 pr-2'>
+                                                    <p className='text-[13px] font-medium text-[#1F2225] leading-tight truncate'>{lesson.title}</p>
+                                                    <p className='text-[12px] text-[#6A6F73] mt-1'>
+                                                        {lesson.duration_min} min · {(lesson.difficulty ?? '').toLowerCase()}
+                                                    </p>
+                                                    {lesson.courses?.title && (
+                                                        <p className='text-[11px] text-[#8BA089] mt-0.5 truncate'>{lesson.courses.title}</p>
+                                                    )}
+                                                </div>
+                                                <div className='flex items-center gap-2.5 text-[12px] shrink-0'>
+                                                    <span className='flex items-center gap-1'>
+                                                        <Zap size={14} className='text-[#A9D8AE]' />
+                                                        {lesson.xp_reward} XP
+                                                    </span>
+                                                    <span className='flex items-center gap-1'>
+                                                        <Banknote size={14} className='text-[#E8933E]' />
+                                                        {lesson.coins_reward}
+                                                    </span>
+                                                    <span className='flex items-center gap-1'>
+                                                        <MaterialIcon size={14} className='text-[#6A6F73]' />
+                                                        {lesson.material_qty}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </button>
+                                    </li>
+                                )
+                            })}
+                        </ul>
+                    )}
 
                     <button className='w-full' onClick={() => navigate('/courses')}>
                         <p className='text-xs font-semibold tracking-wide text-center rounded-full text-white mt-3 p-3 border-t bg-[#8dc26d]'>View all lessons</p>

@@ -51,13 +51,14 @@ export default function CourseShow() {
     }, [load])
 
     const lessonsWithStatus = useMemo(() => {
+        if (!enrolled) return lessons.map(l => ({ ...l, status: 'locked' }))
         const firstIncomplete = lessons.find(l => !completedIds.has(l.id))
         return lessons.map(l => {
             if (completedIds.has(l.id)) return { ...l, status: 'completed' }
             if (firstIncomplete && l.id === firstIncomplete.id) return { ...l, status: 'current' }
             return { ...l, status: 'locked' }
         })
-    }, [lessons, completedIds])
+    }, [lessons, completedIds, enrolled])
 
     const completed = completedIds.size
     const total = lessons.length
@@ -165,6 +166,15 @@ export default function CourseShow() {
 
                     {/* Lessons list */}
                     <h2 className='text-lg font-bold mb-4'>Lessons</h2>
+                    {!enrolled && lessonsWithStatus.length > 0 && (
+                        <div className='bg-[#EFF7EE] border border-[#A9D8AE] rounded-2xl px-5 py-4 mb-4 text-sm flex items-center gap-3'>
+                            <Lock size={16} className='text-[#3E7A42] shrink-0' />
+                            <p className='text-[#2A2E2B]'>
+                                <span className='font-bold'>Enroll in this course to unlock lessons.</span>{' '}
+                                <span className='text-[#6A6F73]'>Your progress, XP and materials are tracked per enrollment.</span>
+                            </p>
+                        </div>
+                    )}
                     {lessonsWithStatus.length === 0 && (
                         <p className='text-sm text-[#6A6F73]'>No lessons in this course yet.</p>
                     )}
@@ -210,8 +220,8 @@ export default function CourseShow() {
                                     </div>
 
                                     {isLocked ? (
-                                        <span className='shrink-0 flex items-center justify-center gap-2 px-4 py-2 rounded-xl font-medium text-xs bg-[#EFF3EE] text-[#9AA09B] cursor-not-allowed'>
-                                            <Lock size={14} /> Locked
+                                        <span className='shrink-0 flex items-center justify-center gap-2 px-4 py-2 rounded-xl font-medium text-xs bg-[#EFF3EE] text-[#9AA09B] cursor-not-allowed' title={!enrolled ? 'Enroll in this course first' : 'Complete previous lessons first'}>
+                                            <Lock size={14} /> {!enrolled ? 'Enroll to unlock' : 'Locked'}
                                         </span>
                                     ) : (
                                         <Link

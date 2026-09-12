@@ -101,6 +101,21 @@ export async function submitQuizAttempt({ quiz, answers }) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Must be signed in to submit a quiz')
 
+    const { data: lesson } = await supabase
+        .from('lessons')
+        .select('course_id')
+        .eq('id', quiz.lesson_id)
+        .single()
+    if (lesson) {
+        const { data: enrollment } = await supabase
+            .from('enrollments')
+            .select('course_id')
+            .eq('user_id', user.id)
+            .eq('course_id', lesson.course_id)
+            .maybeSingle()
+        if (!enrollment) throw new Error('Enroll in this course before submitting quizzes')
+    }
+
     const questions = quiz.questions ?? []
     let earned = 0
     let total = 0

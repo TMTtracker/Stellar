@@ -69,6 +69,8 @@ export default function LessonShow() {
     const [resources, setResources] = useState([])
     const [quiz, setQuiz] = useState(null)
     const [completedIds, setCompletedIds] = useState(new Set())
+    const [enrolled, setEnrolled] = useState(false)
+    const [enrolling, setEnrolling] = useState(false)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState('')
     const [completing, setCompleting] = useState(false)
@@ -77,10 +79,11 @@ export default function LessonShow() {
         setLoading(true)
         setError('')
         try {
-            const [detail, progress, quizData] = await Promise.all([
+            const [detail, progress, quizData, enrollment] = await Promise.all([
                 getLessonDetail(lessonId),
                 getCourseProgress(courseId),
-                getQuizForLesson(lessonId)
+                getQuizForLesson(lessonId),
+                getEnrollment(courseId)
             ])
             // Guard against a mismatched URL (lesson from another course)
             if (detail.lesson.course_id !== courseId) {
@@ -94,6 +97,7 @@ export default function LessonShow() {
             setResources(detail.resources)
             setQuiz(quizData)
             setCompletedIds(new Set((progress ?? []).map(p => p.lesson_id)))
+            setEnrolled(!!enrollment)
         } catch (e) {
             setError(e.message ?? 'Failed to load lesson')
         } finally {
@@ -114,7 +118,19 @@ export default function LessonShow() {
     }, [lesson, siblings, completedIds])
 
     const isCompleted = status === 'completed'
-    const isLocked = status === 'locked'
+    const isLocked = status === 'locked' || !enrolled
+
+    async function handleEnroll() {
+        setEnrolling(true)
+        try {
+            await enrollInCourse(courseId)
+            setEnrolled(true)
+        } catch (e) {
+            setError(e.message)
+        } finally {
+            setEnrolling(false)
+        }
+    }
 
     async function handleToggleComplete() {
         setCompleting(true)
@@ -156,7 +172,24 @@ export default function LessonShow() {
                 </div>
             )}
 
-            {!loading && !error && lesson && isLocked && (
+            {!loading && !error && lesson && !enrolled && (
+                <div className='bg-white rounded-2xl border border-[#C9DDC4] p-10 text-center max-w-xl mx-auto'>
+                    <div className='w-12 h-12 rounded-full bg-[#EFF7EE] flex items-center justify-center mx-auto mb-4'>
+                        <Lock size={20} className='text-[#3E7A42]' />
+                    </div>
+                    <p className='font-bold text-lg'>Enroll to start this lesson</p>
+                    <p className='text-sm text-[#6A6F73] mt-1 mb-5'>You need to enroll in “{course?.title ?? 'this course'}” before you can read “{lesson.title}”, take its quiz, or earn rewards.</p>
+                    <button
+                        onClick={handleEnroll}
+                        disabled={enrolling}
+                        className='inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium bg-[#A9D8AE] text-white hover:bg-[#96CC9C] disabled:opacity-60'
+                    >
+                        <Play size={15} /> {enrolling ? 'Enrolling…' : 'Enroll in course'}
+                    </button>
+                </div>
+            )}
+
+            {!loading && !error && lesson && enrolled && isLocked && (
                 <div className='bg-white rounded-2xl border border-[#C9DDC4] p-10 text-center max-w-xl mx-auto'>
                     <div className='w-12 h-12 rounded-full bg-[#EFF3EE] flex items-center justify-center mx-auto mb-4'>
                         <Lock size={20} className='text-[#6A6F73]' />
@@ -169,7 +202,7 @@ export default function LessonShow() {
                 </div>
             )}
 
-            {!loading && !error && lesson && !isLocked && (
+            {!loading && !error && lesson && enrolled && !isLocked && (
                 <>
                     {/* Header */}
                     <div className='mb-6'>

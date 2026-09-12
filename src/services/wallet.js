@@ -1,13 +1,8 @@
+import { notifyInventoryChanged, notifyWalletChanged } from './events'
+import { addMaterials } from './inventory'
 import { supabase } from './supabaseClient'
 
-export const WALLET_EVENT = 'stellar:wallet-changed'
-
-/** Notify all useWallet hooks to refetch (called after any award/spend). */
-export function notifyWalletChanged() {
-    if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent(WALLET_EVENT))
-    }
-}
+export { notifyWalletChanged, WALLET_EVENT } from './events'
 
 function isMissingTable(error) {
     return !!error && /could not find the table|schema cache/i.test(error.message ?? '')
@@ -26,14 +21,16 @@ export async function getMyProfile() {
         .eq('user_id', user.id)
         .maybeSingle()
     if (error) {
-        if (isMissingTable(error)) return null // 002 migration not run yet
+        if (isMissingTable(error)) return null
         throw error
     }
     if (data) return data
 
+    const display_name =
+        user.user_metadata?.full_name?.trim() || user.email?.split('@')[0] || 'Stellar Cadet'
     const { data: created, error: createError } = await supabase
         .from('profiles')
-        .insert({ user_id: user.id })
+        .insert({ user_id: user.id, display_name })
         .select()
         .single()
     if (createError) {
@@ -73,17 +70,93 @@ export async function getMyRecentRewards(limit = 10) {
     return data ?? []
 }
 
-// ---------- Earn / spend (atomic RPCs, amounts set server-side) ----------
+// ---------- Earn / spend (direct table writes) ----------
+
+/** Has this user already earned a once-ever ledger reward? */
+async function hasLedgerReward(userId, filters) {
+    let query = supabase
+        .from('xp_ledger')
+        .select('id')
+        .eq('user_id', userId)
+        .limit(1)
+    for (const [col, value] of Object.entries(filters)) {
+        query = query.eq(col, value)
+    }
+    const { data, error } = await query.maybeSingle()
+    if (error) throw error
+    return !!data
+}
 
 /**
- * Award lesson XP/coins once per (user, lesson). Idempotent — re-completing
- * returns { awarded: false } with current totals.
+ * Award lesson XP/coins/materials once per (user, lesson). Idempotent —
+ * re-completing returns { awarded: false } with current totals.
  */
 export async function awardLessonComplete(lessonId) {
-    const { data, error } = await supabase.rpc('award_lesson_complete', { p_lesson_id: lessonId })
-    if (error) throw error
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('Must be signed in')
+
+    const { data: lesson, error: lessonError } = await supabase
+        .from('lessons')
+        .select('xp_reward, coins_reward, material_name, material_qty')
+        .eq('id', lessonId)
+        .single()
+    if (lessonError) throw lessonError
+
+    const profile = await getMyProfile()
+    if (!profile) throw new Error('Profile not available')
+
+    if (await hasLedgerReward(user.id, { kind: 'lesson_complete', ref_lesson_id: lessonId })) {
+        const current = await getMyProfile()
+        return {
+            awarded: false,
+            xp: lesson.xp_reward,
+            coins: lesson.coins_reward,
+            xp_total: current?.xp_total ?? 0,
+            coins_total: current?.coins ?? 0,
+            material_name: lesson.material_name,
+            material_qty: lesson.material_qty
+        }
+    }
+
+    const { error: ledgerError } = await supabase.from('xp_ledger').insert({
+        user_id: user.id,
+        kind: 'lesson_complete',
+        ref_lesson_id: lessonId,
+        xp: lesson.xp_reward,
+        coins: lesson.coins_reward
+    })
+    if (ledgerError) throw ledgerError
+
+    const xp_total = (profile.xp_total ?? 0) + (lesson.xp_reward ?? 0)
+    const coins_total = (profile.coins ?? 0) + (lesson.coins_reward ?? 0)
+    const { error: profileError } = await supabase
+        .from('profiles')
+        .update({ xp_total, coins: coins_total, updated_at: new Date().toISOString() })
+        .eq('user_id', user.id)
+    if (profileError) throw profileError
+
+    let material_column = null
+    if (lesson.material_name && (lesson.material_qty ?? 0) > 0) {
+        try {
+            const res = await addMaterials(lesson.material_name, lesson.material_qty)
+            material_column = res.item
+        } catch (e) {
+            console.warn('[economy] material grant skipped:', e.message)
+        }
+    }
+
     notifyWalletChanged()
-    return data
+    notifyInventoryChanged()
+    return {
+        awarded: true,
+        xp: lesson.xp_reward,
+        coins: lesson.coins_reward,
+        xp_total,
+        coins_total,
+        material_name: lesson.material_name,
+        material_qty: lesson.material_qty,
+        material_column
+    }
 }
 
 /**
@@ -91,8 +164,32 @@ export async function awardLessonComplete(lessonId) {
  * ok:false with error:'insufficient_funds' instead of throwing.
  */
 export async function spendCoins(amount, note = '') {
-    const { data, error } = await supabase.rpc('spend_coins', { p_amount: amount, p_note: note })
-    if (error) throw error
-    if (data?.ok) notifyWalletChanged()
-    return data
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('Must be signed in')
+    if (!amount || amount <= 0) throw new Error('Invalid amount')
+
+    const profile = await getMyProfile()
+    if (!profile) throw new Error('Profile not available')
+    if ((profile.coins ?? 0) < amount) {
+        return { ok: false, error: 'insufficient_funds', coins: profile.coins ?? 0 }
+    }
+
+    const coins = profile.coins - amount
+    const { error: profileError } = await supabase
+        .from('profiles')
+        .update({ coins, updated_at: new Date().toISOString() })
+        .eq('user_id', user.id)
+    if (profileError) throw profileError
+
+    const { error: ledgerError } = await supabase.from('xp_ledger').insert({
+        user_id: user.id,
+        kind: 'spend',
+        xp: 0,
+        coins: -amount,
+        note: note ?? ''
+    })
+    if (ledgerError) throw ledgerError
+
+    notifyWalletChanged()
+    return { ok: true, coins }
 }
