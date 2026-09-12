@@ -4,14 +4,19 @@ import { OrbitControls, Grid } from "@react-three/drei"
 import { ArrowUp, ArrowDown, ArrowLeft, ArrowRight, RotateCw, Trash2 } from "lucide-react"
 import Camp from "../HeroModel/Camp"
 import { Building, GrassField, Tree } from "./WorldProps"
-import WindMill from "./WindMill"
+import BuildingModel from "./BuildingModel"
 import { listMyBuildings, moveBuilding, rotateBuilding, removeBuilding, RESOURCES_EVENT } from "@/services/resources"
 
-// Which 3D model represents each build_menu id - only data_structures_hall
-// has one so far (a test of the placement pipeline); any other build_id
-// simply doesn't render anything yet.
-const BUILDING_MODELS = {
-    data_structures_hall: WindMill
+import windMillModel from "../../assets/models/SM_Wind_mill.glb"
+import waterWellModel from "../../assets/models/SM_Water_Well.glb"
+import workspaceModel from "../../assets/models/SM_WorkSpace.glb"
+
+// Which .glb model represents each build_menu id - any build_id not
+// listed here simply doesn't render anything yet.
+const BUILDING_MODEL_URLS = {
+    data_structures_hall: windMillModel,
+    algorithms_tower: waterWellModel,
+    interview_prep_dojo: workspaceModel
 }
 
 // Placed buildings get spread out relative to this origin. Grid
@@ -163,11 +168,12 @@ function GameWorld() {
 
                 {/* Player-placed buildings from user_building_positions */}
                 {buildings.map(b => {
-                    const Model = BUILDING_MODELS[b.build_id]
-                    if (!Model) return null
+                    const modelUrl = BUILDING_MODEL_URLS[b.build_id]
+                    if (!modelUrl) return null
                     return (
-                        <Model
+                        <BuildingModel
                             key={b.id}
+                            modelUrl={modelUrl}
                             position={toWorldPosition(b)}
                             rotationDeg={b.rotation ?? 0}
                             selected={b.id === selectedId}
