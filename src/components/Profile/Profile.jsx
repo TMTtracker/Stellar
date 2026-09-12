@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react'
-import { Check, LockKeyhole, Mail, UserRound } from 'lucide-react'
+import { Check, LockKeyhole, Mail, UserRound, X } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { useWallet } from '@/hooks/useWallet'
 import { useInventory } from '@/hooks/useInventory'
 import { getMyRecentRewards } from '@/services/wallet'
 
-function Profile() {
+function Profile({ modal = false, onClose }) {
     const { user, updateProfile } = useAuth()
     const { xp, coins, level, pct, loading: walletLoading } = useWallet()
     const { inventory, total: materialTotal, loading: invLoading } = useInventory()
@@ -60,12 +60,21 @@ function Profile() {
     }, [user])
 
     return (
-        <div id='profile' className='min-h-screen scroll-mt-27.5 p-6 max-w-3xl mx-auto'>
-            <p className='text-[11px] font-bold tracking-wider text-[#A9D8AE]'>PROFILE</p>
-            <h1 className='text-3xl font-extrabold tracking-tight mt-1'>
-                {user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Stellar Cadet'}
-            </h1>
-            <p className='text-sm text-[#6A6F73] mt-1'>{user?.email}</p>
+        <div id='profile' className={`${modal ? 'p-5 sm:p-6' : 'min-h-screen scroll-mt-27.5 p-6'} max-w-3xl mx-auto`}>
+            <div className='flex items-start justify-between'>
+                <div>
+                    <p className='text-[11px] font-bold tracking-wider text-[#A9D8AE]'>PROFILE</p>
+                    <h1 className='text-3xl font-extrabold tracking-tight mt-1'>
+                        {user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Stellar Cadet'}
+                    </h1>
+                    <p className='text-sm text-[#6A6F73] mt-1'>{user?.email}</p>
+                </div>
+                {modal && (
+                    <button onClick={onClose} aria-label='Close profile' className='text-[#6A6F73] hover:text-[#1F2225]'>
+                        <X size={18} />
+                    </button>
+                )}
+            </div>
 
             <form onSubmit={handleSubmit} className='mt-6 rounded-2xl border border-[#C9DDC4] bg-white p-6'>
                 <h2 className='mb-5 text-lg font-bold'>Profile settings</h2>
