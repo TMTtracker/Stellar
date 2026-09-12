@@ -9,6 +9,7 @@ import { Outlet, Route, Routes } from 'react-router-dom'
 import CourseShow from '@/Pages/Courses/show'
 import LessonShow from '@/Pages/Lessons/show'
 import RequireAuth from '@/components/RequireAuth'
+import Profile from '@/components/Profile/Profile'
 
 function App() {
     return (
@@ -66,6 +67,14 @@ function App() {
                 element={
                     <RequireAuth>
                         <AI />
+                    </RequireAuth>
+                }
+            />
+            <Route
+                path='/profile'
+                element={
+                    <RequireAuth>
+                        <Profile />
                     </RequireAuth>
                 }
             />
