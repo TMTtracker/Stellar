@@ -9,7 +9,8 @@ import QuizTaker from '@/components/Quiz/QuizTaker'
 import { Link, useParams } from 'react-router-dom'
 import { getLessonDetail } from '@/services/lessons'
 import { getQuizForLesson } from '@/services/quizzes'
-import { completeLesson, enrollInCourse, getCourseProgress, getEnrollment, uncompleteLesson } from '@/services/courses'
+import { completeLesson, getCourseProgress, uncompleteLesson } from '@/services/courses'
+import { materialIconFor } from '@/lib/materials'
 
 const difficultyColor = {
     Easy: 'text-[#6FAE73] bg-[#E1F0DF]',
@@ -225,6 +226,14 @@ export default function LessonShow() {
                             <span className='flex items-center gap-1'><Clock size={13} /> {lesson.duration_min} min</span>
                             <span className='flex items-center gap-1'><Zap size={13} className='text-[#C79A3E]' /> {lesson.xp_reward} XP</span>
                             <span className='flex items-center gap-1'><Coins size={13} className='text-[#C79A3E]' /> {lesson.coins_reward} coins</span>
+                            {lesson.material_qty > 0 && (() => {
+                                const MaterialIcon = materialIconFor(lesson.material_name)
+                                return (
+                                    <span className='flex items-center gap-1'>
+                                        <MaterialIcon size={13} /> {lesson.material_qty} {lesson.material_name}
+                                    </span>
+                                )
+                            })()}
                         </div>
                     </div>
 
@@ -268,7 +277,16 @@ export default function LessonShow() {
                         <p className='text-[11px] font-bold tracking-wider text-[#A9D8AE] mb-1'>CHECK YOUR UNDERSTANDING</p>
                         <h2 className='text-lg font-bold mb-4'>{quiz ? quiz.title : 'Quiz'}</h2>
                         {quiz
-                            ? <QuizTaker quiz={quiz} onPassed={handleQuizPassed} />
+                            ? (
+                                <QuizTaker
+                                    quiz={quiz}
+                                    onPassed={handleQuizPassed}
+                                    xpReward={lesson.xp_reward}
+                                    coinsReward={lesson.coins_reward}
+                                    materialName={lesson.material_name}
+                                    materialQty={lesson.material_qty}
+                                />
+                            )
                             : <p className='text-sm text-[#6A6F73]'>No quiz for this lesson yet — just mark it complete when you&apos;ve finished reading.</p>}
                     </div>
 

@@ -2,9 +2,7 @@ import { useState } from 'react'
 import { BrickWall, Coins, TreeDeciduous, Zap } from 'lucide-react'
 import ProtectedLayout from '@/components/ProtectedLayout/ProtectedLayout'
 import { useWallet } from '@/hooks/useWallet'
-import { useInventory } from '@/hooks/useInventory'
-import { spendCoins } from '@/services/wallet'
-import { addMaterials } from '@/services/inventory'
+import { buyShopItem } from '@/services/resources'
 
 const items = [
     {
@@ -44,8 +42,11 @@ function Shop() {
         setBuying(item.id)
         setMessage('')
         try {
-            const res = await spendCoins(item.price, `shop:${item.id}`)
-            if (!res?.ok) {
+            const res = await buyShopItem(item.id)
+            if (res?.ok) {
+                setMessage(`Bought ${item.name} for ${item.price} coins.`)
+                refresh()
+            } else {
                 setMessage(`Not enough coins — you have ${(res?.coins ?? coins).toLocaleString()}. Complete lessons to earn more.`)
                 return
             }

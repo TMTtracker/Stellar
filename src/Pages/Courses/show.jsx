@@ -1,20 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Check, Clock, Play, BookOpen, Lock, Zap, Coins, Box, TreePine, Gem, Mountain, ChevronLeft, ListChecks } from 'lucide-react'
+import { Check, Clock, Play, BookOpen, Lock, Zap, Coins, Boxes, ChevronLeft, ListChecks } from 'lucide-react'
 import ProtectedLayout from '@/components/ProtectedLayout/ProtectedLayout'
 import { Link, useParams } from 'react-router-dom'
 import { enrollInCourse, getCourseWithLessons, getCourseProgress, getEnrollment } from '@/services/courses'
 import { getLessonsWithQuiz } from '@/services/quizzes'
-
-const materialIcon = {
-    Bricks: Box,
-    Timber: TreePine,
-    'Rare gem': Gem,
-    Stone: Mountain
-}
-
-function materialIconFor(name) {
-    return materialIcon[name] ?? Box
-}
+import { materialIconFor } from '@/lib/materials'
 
 const difficultyColor = {
     Easy: 'text-[#6FAE73] bg-[#E1F0DF]',
@@ -75,6 +65,7 @@ export default function CourseShow() {
     const pct = total > 0 ? Math.round((completed / total) * 100) : 0
     const totalXp = lessons.reduce((sum, l) => sum + (l.xp_reward ?? 0), 0)
     const totalCoins = lessons.reduce((sum, l) => sum + (l.coins_reward ?? 0), 0)
+    const totalMaterialsCount = lessons.reduce((sum, l) => sum + (l.material_qty ?? 0), 0)
 
     async function handleEnroll() {
         setEnrolling(true)
@@ -159,6 +150,18 @@ export default function CourseShow() {
                                 <p className='text-xs text-[#6A6F73] mt-1'>coins available</p>
                             </div>
                         </div>
+
+                        {totalMaterialsCount > 0 && (
+                            <div className='bg-white rounded-2xl border border-[#C9DDC4] p-5 flex items-center gap-3'>
+                                <div className='w-10 h-10 rounded-lg bg-[#E1F0DF] flex items-center justify-center shrink-0'>
+                                    <Boxes size={18} className='text-[#6FAE73]' />
+                                </div>
+                                <div>
+                                    <p className='text-lg font-bold leading-none'>{totalMaterialsCount}</p>
+                                    <p className='text-xs text-[#6A6F73] mt-1'>materials in this course</p>
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     {/* Lessons list */}

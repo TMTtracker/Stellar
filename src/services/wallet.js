@@ -160,63 +160,6 @@ export async function awardLessonComplete(lessonId) {
 }
 
 /**
- * Award quiz XP/coins once per (user, quiz) — first pass only.
- */
-export async function awardQuizPass(quizId, attemptId = null) {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new Error('Must be signed in')
-
-    const { data: quiz, error: quizError } = await supabase
-        .from('quizzes')
-        .select('lesson_id, xp_reward, coins_reward')
-        .eq('id', quizId)
-        .single()
-    if (quizError) throw quizError
-
-    const profile = await getMyProfile()
-    if (!profile) throw new Error('Profile not available')
-
-    if (await hasLedgerReward(user.id, { kind: 'quiz_pass', ref_quiz_id: quizId })) {
-        const current = await getMyProfile()
-        return {
-            awarded: false,
-            xp: quiz.xp_reward,
-            coins: quiz.coins_reward,
-            xp_total: current?.xp_total ?? 0,
-            coins_total: current?.coins ?? 0
-        }
-    }
-
-    const { error: ledgerError } = await supabase.from('xp_ledger').insert({
-        user_id: user.id,
-        kind: 'quiz_pass',
-        ref_quiz_id: quizId,
-        ref_attempt_id: attemptId,
-        ref_lesson_id: quiz.lesson_id,
-        xp: quiz.xp_reward,
-        coins: quiz.coins_reward
-    })
-    if (ledgerError) throw ledgerError
-
-    const xp_total = (profile.xp_total ?? 0) + (quiz.xp_reward ?? 0)
-    const coins_total = (profile.coins ?? 0) + (quiz.coins_reward ?? 0)
-    const { error: profileError } = await supabase
-        .from('profiles')
-        .update({ xp_total, coins: coins_total, updated_at: new Date().toISOString() })
-        .eq('user_id', user.id)
-    if (profileError) throw profileError
-
-    notifyWalletChanged()
-    return {
-        awarded: true,
-        xp: quiz.xp_reward,
-        coins: quiz.coins_reward,
-        xp_total,
-        coins_total
-    }
-}
-
-/**
  * Spend coins (shop, buildings). Returns { ok, coins, error? } —
  * ok:false with error:'insufficient_funds' instead of throwing.
  */
