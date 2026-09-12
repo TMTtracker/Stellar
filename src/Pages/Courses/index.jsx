@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Check, Clock, Play, BookOpen, Code, MessagesSquare } from 'lucide-react'
+import { Check, Clock, Play, BookOpen, Code, Eye, MessagesSquare } from 'lucide-react'
 import ProtectedLayout from '@/components/ProtectedLayout/ProtectedLayout'
 import { Link } from 'react-router-dom'
 import { listCoursesWithProgress } from '@/services/courses'
@@ -130,7 +130,11 @@ export default function Courses() {
 
                                 <div className='px-5 pb-5 pt-4'>
                                     <Link to={`/courses/${course.id}`} className='w-full flex items-center justify-center gap-2 py-2.5 rounded-xl font-medium text-sm transition-colors hover:bg-[#D2E8CC] bg-[#DCEFD6] text-[#1F2225]'>
-                                        {pct === 100 ? (
+                                        {!course.enrolled ? (
+                                            <>
+                                                <Eye size={16} /> View
+                                            </>
+                                        ) : pct === 100 ? (
                                             <>
                                                 <Check size={16} className='text-[#A9D8AE]' /> Review
                                             </>

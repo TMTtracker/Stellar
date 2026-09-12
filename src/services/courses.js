@@ -164,6 +164,15 @@ export async function completeLesson({ lessonId, courseId }) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Must be signed in')
 
+    const { data: enrollment, error: enrollError } = await supabase
+        .from('enrollments')
+        .select('course_id')
+        .eq('user_id', user.id)
+        .eq('course_id', courseId)
+        .maybeSingle()
+    if (enrollError) throw enrollError
+    if (!enrollment) throw new Error('Enroll in this course before starting lessons')
+
     const { data, error } = await supabase
         .from('lesson_progress')
         .upsert(
@@ -173,11 +182,6 @@ export async function completeLesson({ lessonId, courseId }) {
         .select()
         .single()
     if (error) throw error
-
-    // Auto-enroll on first completion (enrollment is implicit once you start)
-    await supabase
-        .from('enrollments')
-        .upsert({ user_id: user.id, course_id: courseId }, { onConflict: 'user_id,course_id' })
 
     // Earn lesson XP/coins once-ever (best-effort: progress is saved even if
     // the economy migration hasn't been run yet). Un-completing later does
