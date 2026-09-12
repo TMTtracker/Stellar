@@ -4,6 +4,7 @@ import Courses from '@/Pages/Courses'
 import Communities from '@/Pages/Communities'
 import Leaderboard from '@/components/Leaderboard/Leaderboard'
 import Shop from '@/Pages/Shop'
+import AI from '@/Pages/AI'
 import { Outlet, Route, Routes } from 'react-router-dom'
 import CourseShow from '@/Pages/Courses/show'
 import LessonShow from '@/Pages/Lessons/show'
@@ -57,6 +58,14 @@ function App() {
                 element={
                     <RequireAuth>
                         <Shop />
+                    </RequireAuth>
+                }
+            />
+            <Route
+                path='/ai'
+                element={
+                    <RequireAuth>
+                        <AI />
                     </RequireAuth>
                 }
             />
