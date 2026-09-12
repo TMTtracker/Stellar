@@ -2,11 +2,11 @@ import { useEffect, useMemo, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import {
     ArrowLeft, ArrowRight, BookOpen, Check, ChevronLeft, Clock, Coins,
-    ExternalLink, FileText, Image as ImageIcon, Link as LinkIcon, Lock, Play, Video, Zap
+    ExternalLink, FileText, Image as ImageIcon, Link as LinkIcon, Lock, Play, Sparkles, Video, Zap
 } from 'lucide-react'
 import ProtectedLayout from '@/components/ProtectedLayout/ProtectedLayout'
 import QuizTaker from '@/components/Quiz/QuizTaker'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { getLessonDetail } from '@/services/lessons'
 import { getQuizForLesson } from '@/services/quizzes'
 import { completeLesson, enrollInCourse, getCourseProgress, getEnrollment, uncompleteLesson } from '@/services/courses'
@@ -61,6 +61,7 @@ const mdComponents = {
 
 export default function LessonShow() {
     const { courseId, lessonId } = useParams()
+    const navigate = useNavigate()
     const [lesson, setLesson] = useState(null)
     const [course, setCourse] = useState(null)
     const [siblings, setSiblings] = useState([])
@@ -133,8 +134,23 @@ export default function LessonShow() {
         }
     }
 
-    async function handleToggleComplete() {
-        setCompleting(true)
+    function handleSummarize() {
+        if (!lesson) return
+        navigate('/ai', {
+            state: {
+                lesson: {
+                    id: lesson.id,
+                    courseId,
+                    courseTitle: course?.title ?? '',
+                    title: lesson.title,
+                    summary: lesson.summary ?? '',
+                    content: lesson.content ?? ''
+                }
+            }
+        })
+    }
+
+    async function handleToggleComplete() {        setCompleting(true)
         try {
             if (isCompleted) {
                 await uncompleteLesson(lesson.id)
@@ -236,6 +252,13 @@ export default function LessonShow() {
                                 )
                             })()}
                         </div>
+
+                        <button
+                            onClick={handleSummarize}
+                            className='mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-[#141814] text-white hover:bg-[#2A2E2B] transition-colors'
+                        >
+                            <Sparkles size={15} /> Summarize with AI
+                        </button>
                     </div>
 
                     {/* Content */}

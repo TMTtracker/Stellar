@@ -1,12 +1,13 @@
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
-import { BookOpen, Users, Home as House, Zap, Coins, LogOut } from 'lucide-react'
+import { BookOpen, Users, Home as House, Zap, Coins, LogOut, Sparkles } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { useWallet } from '@/hooks/useWallet'
 
 const navItems = [
     { to: '/dashboard', icon: House, label: 'Dashboard' },
     { to: '/courses', icon: BookOpen, label: 'Courses' },
-    { to: '/communities', icon: Users, label: 'Community' }
+    { to: '/communities', icon: Users, label: 'Community' },
+    { to: '/ai', icon: Sparkles, label: 'AI Tutor' }
 ]
 
 function ProtectedLayout({ children }) {
@@ -58,7 +59,7 @@ function ProtectedLayout({ children }) {
                     <header className='flex items-center justify-between px-10 py-6'>
                         <div>
                             <p className='font-extrabold tracking-tight text-lg leading-none'>STELLAR</p>
-                            <p className='text-[#6A6F73] text-sm'>{location.pathname.startsWith('/courses') ? 'Courses' : location.pathname.startsWith('/communities') ? 'Community' : 'Your World'}</p>
+                            <p className='text-[#6A6F73] text-sm'>{location.pathname.startsWith('/courses') ? 'Courses' : location.pathname.startsWith('/communities') ? 'Community' : location.pathname.startsWith('/ai') ? 'AI Tutor' : 'Your World'}</p>
                         </div>
 
                         <div className='flex items-center gap-4'>
