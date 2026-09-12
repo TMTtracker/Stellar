@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { BrickWall, Coins, TreeDeciduous, Zap } from 'lucide-react'
 import ProtectedLayout from '@/components/ProtectedLayout/ProtectedLayout'
 import { useWallet } from '@/hooks/useWallet'
+import { useInventory } from '@/hooks/useInventory'
 import { buyShopItem } from '@/services/resources'
 
 const items = [
@@ -43,21 +44,20 @@ function Shop() {
         setMessage('')
         try {
             const res = await buyShopItem(item.id)
-            if (res?.ok) {
-                setMessage(`Bought ${item.name} for ${item.price} coins.`)
-                refresh()
-            } else {
+            if (!res?.ok) {
                 setMessage(`Not enough coins — you have ${(res?.coins ?? coins).toLocaleString()}. Complete lessons to earn more.`)
                 return
             }
-            if (item.material) {
-                await addMaterials(item.material, item.qty)
-                refreshInventory()
-                setMessage(`Bought ${item.name} for ${item.price} coins. Materials added to inventory.`)
-            } else {
-                setMessage(`Bought ${item.name} for ${item.price} coins.`)
-            }
+            // buyShopItem already spends the coins AND grants the material
+            // atomically server-side — no separate addMaterials call here
+            // (that would grant the bundle twice).
             refresh()
+            refreshInventory()
+            setMessage(
+                item.material
+                    ? `Bought ${item.name} for ${item.price} coins. Materials added to inventory.`
+                    : `Bought ${item.name} for ${item.price} coins.`
+            )
         } catch (e) {
             setMessage(e.message ?? 'Purchase failed.')
         } finally {

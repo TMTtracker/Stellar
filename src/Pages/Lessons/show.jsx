@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import {
     ArrowLeft, ArrowRight, BookOpen, Check, ChevronLeft, Clock, Coins,
@@ -9,7 +9,7 @@ import QuizTaker from '@/components/Quiz/QuizTaker'
 import { Link, useParams } from 'react-router-dom'
 import { getLessonDetail } from '@/services/lessons'
 import { getQuizForLesson } from '@/services/quizzes'
-import { completeLesson, getCourseProgress, uncompleteLesson } from '@/services/courses'
+import { completeLesson, enrollInCourse, getCourseProgress, getEnrollment, uncompleteLesson } from '@/services/courses'
 import { materialIconFor } from '@/lib/materials'
 
 const difficultyColor = {
@@ -75,39 +75,40 @@ export default function LessonShow() {
     const [error, setError] = useState('')
     const [completing, setCompleting] = useState(false)
 
-    const load = useCallback(async () => {
-        setLoading(true)
-        setError('')
-        try {
-            const [detail, progress, quizData, enrollment] = await Promise.all([
-                getLessonDetail(lessonId),
-                getCourseProgress(courseId),
-                getQuizForLesson(lessonId),
-                getEnrollment(courseId)
-            ])
-            // Guard against a mismatched URL (lesson from another course)
-            if (detail.lesson.course_id !== courseId) {
-                throw new Error('This lesson does not belong to this course.')
-            }
-            setLesson(detail.lesson)
-            setCourse(detail.course)
-            setSiblings(detail.siblings)
-            setPrev(detail.prev)
-            setNext(detail.next)
-            setResources(detail.resources)
-            setQuiz(quizData)
-            setCompletedIds(new Set((progress ?? []).map(p => p.lesson_id)))
-            setEnrolled(!!enrollment)
-        } catch (e) {
-            setError(e.message ?? 'Failed to load lesson')
-        } finally {
-            setLoading(false)
+    useEffect(() => {
+        let cancelled = false
+        Promise.all([
+            getLessonDetail(lessonId),
+            getCourseProgress(courseId),
+            getQuizForLesson(lessonId),
+            getEnrollment(courseId)
+        ])
+            .then(([detail, progress, quizData, enrollment]) => {
+                if (cancelled) return
+                // Guard against a mismatched URL (lesson from another course)
+                if (detail.lesson.course_id !== courseId) {
+                    throw new Error('This lesson does not belong to this course.')
+                }
+                setLesson(detail.lesson)
+                setCourse(detail.course)
+                setSiblings(detail.siblings)
+                setPrev(detail.prev)
+                setNext(detail.next)
+                setResources(detail.resources)
+                setQuiz(quizData)
+                setCompletedIds(new Set((progress ?? []).map(p => p.lesson_id)))
+                setEnrolled(!!enrollment)
+            })
+            .catch(e => {
+                if (!cancelled) setError(e.message ?? 'Failed to load lesson')
+            })
+            .finally(() => {
+                if (!cancelled) setLoading(false)
+            })
+        return () => {
+            cancelled = true
         }
     }, [courseId, lessonId])
-
-    useEffect(() => {
-        load()
-    }, [load])
 
     const status = useMemo(() => {
         if (!lesson) return null

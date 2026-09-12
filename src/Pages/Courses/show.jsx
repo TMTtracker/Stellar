@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Check, Clock, Play, BookOpen, Lock, Zap, Coins, Boxes, ChevronLeft, ListChecks } from 'lucide-react'
 import ProtectedLayout from '@/components/ProtectedLayout/ProtectedLayout'
 import { Link, useParams } from 'react-router-dom'
@@ -23,32 +23,33 @@ export default function CourseShow() {
     const [error, setError] = useState('')
     const [enrolling, setEnrolling] = useState(false)
 
-    const load = useCallback(async () => {
+    useEffect(() => {
         if (!courseId) return
-        setLoading(true)
-        setError('')
-        try {
-            const [{ course: c, lessons: l }, progress, enrollment, withQuiz] = await Promise.all([
-                getCourseWithLessons(courseId),
-                getCourseProgress(courseId),
-                getEnrollment(courseId),
-                getLessonsWithQuiz(courseId).catch(() => new Set())
-            ])
-            setCourse(c)
-            setLessons(l)
-            setCompletedIds(new Set((progress ?? []).map(p => p.lesson_id)))
-            setEnrolled(!!enrollment)
-            setQuizLessonIds(withQuiz)
-        } catch (e) {
-            setError(e.message ?? 'Failed to load course')
-        } finally {
-            setLoading(false)
+        let cancelled = false
+        Promise.all([
+            getCourseWithLessons(courseId),
+            getCourseProgress(courseId),
+            getEnrollment(courseId),
+            getLessonsWithQuiz(courseId).catch(() => new Set())
+        ])
+            .then(([{ course: c, lessons: l }, progress, enrollment, withQuiz]) => {
+                if (cancelled) return
+                setCourse(c)
+                setLessons(l)
+                setCompletedIds(new Set((progress ?? []).map(p => p.lesson_id)))
+                setEnrolled(!!enrollment)
+                setQuizLessonIds(withQuiz)
+            })
+            .catch(e => {
+                if (!cancelled) setError(e.message ?? 'Failed to load course')
+            })
+            .finally(() => {
+                if (!cancelled) setLoading(false)
+            })
+        return () => {
+            cancelled = true
         }
     }, [courseId])
-
-    useEffect(() => {
-        load()
-    }, [load])
 
     const lessonsWithStatus = useMemo(() => {
         if (!enrolled) return lessons.map(l => ({ ...l, status: 'locked' }))

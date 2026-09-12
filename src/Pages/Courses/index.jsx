@@ -22,10 +22,12 @@ export default function Courses() {
 
     useEffect(() => {
         let cancelled = false
-        setLoading(true)
-        setError('')
 
         const t = setTimeout(async () => {
+            if (!cancelled) {
+                setLoading(true)
+                setError('')
+            }
             try {
                 const rows = await listCoursesWithProgress({ search })
                 if (!cancelled) setCourses(rows)

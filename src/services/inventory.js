@@ -3,6 +3,12 @@ import { notifyInventoryChanged, notifyWalletChanged } from './events'
 
 export { INVENTORY_EVENT, notifyInventoryChanged } from './events'
 
+// Canonical material table is player_resources (see 011_merge_inventories:
+// the old standalone `inventories` table was folded into it so lesson
+// rewards, shop grants, and the build panel all share one stockpile).
+// UI code keeps the `rare_gems` key; only the player column is `rare_gem`.
+const TABLE = 'player_resources'
+
 export const INVENTORY_COLUMNS = [
     'bricks',
     'timber',
@@ -48,11 +54,25 @@ export function inventoryColumnFor(name) {
     return null
 }
 
+/** UI key -> player_resources column (only rare_gem differs). */
+const PLAYER_COLUMN = {
+    bricks: 'bricks',
+    timber: 'timber',
+    rare_gems: 'rare_gem',
+    stone: 'stone',
+    iron: 'iron',
+    glass: 'glass',
+    crystal_shard: 'crystal_shard',
+    fabric: 'fabric'
+}
+
+const PLAYER_SELECT = 'bricks, timber, rare_gem, stone, iron, glass, crystal_shard, fabric'
+
 function toInventoryRow(row) {
     return {
         bricks: row?.bricks ?? 0,
         timber: row?.timber ?? 0,
-        rare_gems: row?.rare_gems ?? 0,
+        rare_gems: row?.rare_gem ?? 0,
         stone: row?.stone ?? 0,
         iron: row?.iron ?? 0,
         glass: row?.glass ?? 0,
@@ -61,12 +81,12 @@ function toInventoryRow(row) {
     }
 }
 
-/** Ensure the user has an inventory row (zeroed) and return it. */
+/** Ensure the user has a resources row (zeroed) and return it. */
 export async function ensureInventoryRow(userId) {
     const { data, error } = await supabase
-        .from('inventories')
+        .from(TABLE)
         .upsert({ user_id: userId }, { onConflict: 'user_id' })
-        .select('bricks, timber, rare_gems, stone, iron, glass, crystal_shard, fabric')
+        .select(PLAYER_SELECT)
         .single()
     if (error) throw error
     return toInventoryRow(data)
@@ -93,28 +113,29 @@ export function inventoryTotal(inventory) {
 
 /**
  * Grant materials (lesson rewards, dev tools). Returns { ok, item, qty } —
- * qty is the new count for the material column.
+ * qty is the new count for the material column. `item` is the UI key.
  */
 export async function addMaterials(item, qty) {
-    const col = inventoryColumnFor(item)
-    if (!col) throw new Error(`Unknown material: ${item}`)
+    const uiKey = inventoryColumnFor(item)
+    if (!uiKey) throw new Error(`Unknown material: ${item}`)
     if (!qty || qty <= 0) throw new Error('Invalid quantity')
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Must be signed in')
 
     const row = await ensureInventoryRow(user.id)
-    const next = row[col] + qty
+    const next = row[uiKey] + qty
+    const col = PLAYER_COLUMN[uiKey]
 
     const { error } = await supabase
-        .from('inventories')
+        .from(TABLE)
         .update({ [col]: next, updated_at: new Date().toISOString() })
         .eq('user_id', user.id)
     if (error) throw error
 
     notifyInventoryChanged()
     notifyWalletChanged()
-    return { ok: true, item: col, qty: next }
+    return { ok: true, item: uiKey, qty: next }
 }
 
 /**
@@ -122,25 +143,26 @@ export async function addMaterials(item, qty) {
  * ok:false with error:'insufficient_materials' instead of throwing.
  */
 export async function spendMaterials(item, qty) {
-    const col = inventoryColumnFor(item)
-    if (!col) throw new Error(`Unknown material: ${item}`)
+    const uiKey = inventoryColumnFor(item)
+    if (!uiKey) throw new Error(`Unknown material: ${item}`)
     if (!qty || qty <= 0) throw new Error('Invalid quantity')
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Must be signed in')
 
     const row = await ensureInventoryRow(user.id)
-    if (row[col] < qty) {
-        return { ok: false, error: 'insufficient_materials', item: col, qty: row[col] }
+    if (row[uiKey] < qty) {
+        return { ok: false, error: 'insufficient_materials', item: uiKey, qty: row[uiKey] }
     }
+    const col = PLAYER_COLUMN[uiKey]
 
     const { error } = await supabase
-        .from('inventories')
-        .update({ [col]: row[col] - qty, updated_at: new Date().toISOString() })
+        .from(TABLE)
+        .update({ [col]: row[uiKey] - qty, updated_at: new Date().toISOString() })
         .eq('user_id', user.id)
     if (error) throw error
 
     notifyInventoryChanged()
     notifyWalletChanged()
-    return { ok: true, item: col, qty: row[col] - qty }
+    return { ok: true, item: uiKey, qty: row[uiKey] - qty }
 }

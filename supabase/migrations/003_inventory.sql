@@ -34,6 +34,9 @@ end $$;
 
 alter table public.inventories enable row level security;
 
+-- Table privileges: RLS policies are never evaluated without these.
+grant select, insert, update on public.inventories to authenticated;
+
 drop policy if exists "own_rows" on public.inventories;
 create policy "own_rows" on public.inventories for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 

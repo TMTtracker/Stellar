@@ -10,7 +10,7 @@ export function Tree({ position = [0, 0, 0], scale = 1, trunkColor = '#7a5230', 
     const leafShade = new THREE.Color(leafColor).offsetHSL(0, 0, (seed - 0.5) * 0.08)
 
     return (
-        <group position={position}>
+        <group position={position} scale={[scale, scale, scale]}>
             {/* Trunk */}
             <mesh position={[0, 1.2, 0]} castShadow>
                 <cylinderGeometry args={[0.25, 0.4, 2.4, 6]} />
@@ -94,7 +94,20 @@ export function Grass({ position = [0, 0, 0], scale = 1, color = '#5aa353', blad
         )
     }
 
-    return <group position={position}>{blades_}</group>
+    return <group position={position} scale={[scale, scale, scale]}>{blades_}</group>
+}
+
+// Deterministic PRNG so field layout is stable across re-renders
+// (Math.random() is impure and must not run during render).
+function mulberry32(seed) {
+    let a = seed >>> 0
+    return function () {
+        a |= 0
+        a = (a + 0x6d2b79f5) | 0
+        let t = Math.imul(a ^ (a >>> 15), 1 | a)
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+    }
 }
 
 // ------------------------------------------------------------------
@@ -103,21 +116,22 @@ export function Grass({ position = [0, 0, 0], scale = 1, color = '#5aa353', blad
 // ------------------------------------------------------------------
 export function GrassField({ size = 40, count = 400, color = '#5aa353' }) {
     const positions = useMemo(() => {
+        const rand = mulberry32(size * 100003 + count * 1013)
         const out = []
         for (let i = 0; i < count; i++) {
-            const x = (Math.random() - 0.5) * size
-            const z = (Math.random() - 0.5) * size
+            const x = (rand() - 0.5) * size
+            const z = (rand() - 0.5) * size
             // skip area where camp sits
             if (Math.hypot(x, z) < 6) continue
             out.push({
                 i,
                 x,
                 z,
-                s: 0.9 + Math.random() * 0.5
+                s: 0.9 + rand() * 0.5
             })
         }
         return out
-    }, [size, count, color])
+    }, [size, count])
 
     return (
         <group>

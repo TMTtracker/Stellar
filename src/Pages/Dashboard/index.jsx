@@ -7,6 +7,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { useWallet } from '@/hooks/useWallet'
 import { usePlayerResources } from '@/hooks/usePlayerResources'
 import { listBuildMenu, listMyUnlockedBuildings, buildStructure, buyMissingMaterials, placeNewBuilding, RESOURCES_EVENT } from '@/services/resources'
+import { listDailyLessons } from '@/services/lessons'
 import { DollarSign } from 'lucide-react'
 
 const streak = 9
@@ -86,6 +87,9 @@ export default function Dashboard() {
     const [buildMenu, setBuildMenu] = useState([])
     const [unlockedBuildings, setUnlockedBuildings] = useState([])
     const [placingId, setPlacingId] = useState('')
+    const [dailyLessons, setDailyLessons] = useState([])
+    const [dailyLoading, setDailyLoading] = useState(true)
+    const [dailyError, setDailyError] = useState('')
 
     const displayName = user?.user_metadata?.full_name || user?.email || 'Stellar Cadet'
     const initials = displayName.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
@@ -97,6 +101,23 @@ export default function Dashboard() {
         listBuildMenu().then(rows => {
             if (!cancelled) setBuildMenu(rows)
         })
+        return () => {
+            cancelled = true
+        }
+    }, [])
+
+    useEffect(() => {
+        let cancelled = false
+        listDailyLessons({ limit: 3 })
+            .then(rows => {
+                if (!cancelled) setDailyLessons(rows ?? [])
+            })
+            .catch(e => {
+                if (!cancelled) setDailyError(e.message ?? 'Failed to load daily lessons')
+            })
+            .finally(() => {
+                if (!cancelled) setDailyLoading(false)
+            })
         return () => {
             cancelled = true
         }
