@@ -2,7 +2,9 @@ import { useState } from 'react'
 import { BrickWall, Coins, TreeDeciduous, Zap } from 'lucide-react'
 import ProtectedLayout from '@/components/ProtectedLayout/ProtectedLayout'
 import { useWallet } from '@/hooks/useWallet'
+import { useInventory } from '@/hooks/useInventory'
 import { spendCoins } from '@/services/wallet'
+import { addMaterials } from '@/services/inventory'
 
 const items = [
     {
@@ -10,14 +12,18 @@ const items = [
         name: 'Bundle of Bricks ×5',
         desc: 'Basic building material for your world.',
         price: 50,
-        icon: BrickWall
+        icon: BrickWall,
+        material: 'Bricks',
+        qty: 5
     },
     {
         id: 'timber-5',
         name: 'Bundle of Timber ×5',
         desc: 'Sturdy wood for halls and towers.',
         price: 90,
-        icon: TreeDeciduous
+        icon: TreeDeciduous,
+        material: 'Timber',
+        qty: 5
     },
     {
         id: 'xp-boost',
@@ -30,6 +36,7 @@ const items = [
 
 function Shop() {
     const { coins, xp, loading, refresh } = useWallet()
+    const { refresh: refreshInventory } = useInventory()
     const [buying, setBuying] = useState('')
     const [message, setMessage] = useState('')
 
@@ -38,12 +45,18 @@ function Shop() {
         setMessage('')
         try {
             const res = await spendCoins(item.price, `shop:${item.id}`)
-            if (res?.ok) {
-                setMessage(`Bought ${item.name} for ${item.price} coins.`)
-                refresh()
-            } else {
+            if (!res?.ok) {
                 setMessage(`Not enough coins — you have ${(res?.coins ?? coins).toLocaleString()}. Complete lessons to earn more.`)
+                return
             }
+            if (item.material) {
+                await addMaterials(item.material, item.qty)
+                refreshInventory()
+                setMessage(`Bought ${item.name} for ${item.price} coins. Materials added to inventory.`)
+            } else {
+                setMessage(`Bought ${item.name} for ${item.price} coins.`)
+            }
+            refresh()
         } catch (e) {
             setMessage(e.message ?? 'Purchase failed.')
         } finally {

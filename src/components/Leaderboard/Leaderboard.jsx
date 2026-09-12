@@ -1,24 +1,69 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { TrendingUp, TrendingDown, Star } from 'lucide-react';
 import ThreeDLeaderboard from './ThreeDLeaderboard';
 import AchievementCard from './AchievementCard';
 import CourseRow from './CourseRow';
 import DetailModal from './DetailModal';
 import { leaderboardData } from './leaderboardData';
+import { getTopProfiles } from '@/services/wallet';
+import { levelForXp, levelProgress } from '@/lib/economy';
 import './Leaderboard.css';
-
-const sortedByRank = [...leaderboardData].sort((a, b) => a.rank - b.rank);
-const topThree = sortedByRank.slice(0, 3);
 
 const MEDAL_LABELS = { 1: 'rank-gold', 2: 'rank-silver', 3: 'rank-bronze' };
 const ACHIEVEMENTS_VISIBLE = 2;
 const COURSES_VISIBLE = 3;
 
+function toLiveRow(p, rank) {
+    const level = levelForXp(p.xp_total ?? 0);
+    const { pct } = levelProgress(p.xp_total ?? 0);
+    return {
+        id: p.user_id,
+        rank,
+        name: p.display_name || 'Stellar Cadet',
+        avatar: (p.display_name || 'S').slice(0, 1).toUpperCase(),
+        level,
+        points: p.xp_total ?? 0,
+        deltaFromLastMonth: 0,
+        levelProgress: pct,
+        categories: [],
+        courses: [],
+        achievements: []
+    };
+}
+
 function Leaderboard() {
-    const [selectedUserId, setSelectedUserId] = useState(topThree[0].id);
+    const [liveRows, setLiveRows] = useState(null);
+    const sortedByRank = useMemo(() => {
+        if (liveRows && liveRows.length > 0) return liveRows;
+        return [...leaderboardData].sort((a, b) => a.rank - b.rank);
+    }, [liveRows]);
+    const topThree = sortedByRank.slice(0, 3);
+    const [selectedUserId, setSelectedUserId] = useState(null);
     const [modalType, setModalType] = useState(null); // null | 'achievements' | 'courses'
 
-    const selectedUser = sortedByRank.find((u) => u.id === selectedUserId) ?? topThree[0];
+    useEffect(() => {
+        let cancelled = false;
+        const fallbackId = [...leaderboardData].sort((a, b) => a.rank - b.rank)[0]?.id ?? null;
+        getTopProfiles(8)
+            .then((rows) => {
+                if (cancelled) return;
+                if (rows?.length) {
+                    const mapped = rows.map((p, i) => toLiveRow(p, i + 1));
+                    setLiveRows(mapped);
+                    setSelectedUserId((prev) => prev ?? mapped[0].id);
+                } else {
+                    setSelectedUserId((prev) => prev ?? fallbackId);
+                }
+            })
+            .catch(() => {
+                if (!cancelled) setSelectedUserId((prev) => prev ?? fallbackId);
+            });
+        return () => { cancelled = true; };
+    }, []);
+
+    const selectedUser = sortedByRank.find((u) => u.id === selectedUserId) ?? topThree[0] ?? sortedByRank[0] ?? null;
+
+    if (!selectedUser) return null;
 
     return (
         <section className="leaderboard-section" id="leaderboard">
