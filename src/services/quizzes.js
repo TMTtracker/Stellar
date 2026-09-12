@@ -1,6 +1,5 @@
 import { supabase } from './supabaseClient'
 import { completeLesson } from './courses'
-import { awardQuizPass } from './wallet'
 
 // ---------- Quiz fetching ----------
 
@@ -134,7 +133,6 @@ export async function submitQuizAttempt({ quiz, answers }) {
 
     let lessonCompleted = false
     let lessonReward = null
-    let quizReward = null
     if (passed) {
         try {
             const { data: lesson } = await supabase
@@ -143,7 +141,9 @@ export async function submitQuizAttempt({ quiz, answers }) {
                 .eq('id', quiz.lesson_id)
                 .single()
             if (lesson) {
-                // Awards lesson XP/coins once-ever (no-op on re-pass)
+                // Awards lesson XP/coins/material once-ever (no-op on re-pass).
+                // This is the only reward granted for passing - quizzes no
+                // longer have a separate bonus on top of it.
                 const res = await completeLesson({ lessonId: quiz.lesson_id, courseId: lesson.course_id })
                 lessonReward = res.reward
                 lessonCompleted = true
@@ -151,13 +151,7 @@ export async function submitQuizAttempt({ quiz, answers }) {
         } catch {
             // attempt is already saved; lesson completion is best-effort here
         }
-        try {
-            // Awards quiz XP/coins once-ever (first pass only)
-            quizReward = await awardQuizPass(quiz.id, attempt.id)
-        } catch (e) {
-            console.warn('[economy] quiz award skipped:', e.message)
-        }
     }
 
-    return { attempt, graded, score, passed, lessonCompleted, lessonReward, quizReward }
+    return { attempt, graded, score, passed, lessonCompleted, lessonReward }
 }

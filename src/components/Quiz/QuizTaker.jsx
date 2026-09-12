@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react'
 import { Check, Lock, RotateCcw, Trophy, X, Zap, Coins } from 'lucide-react'
 import { getBestQuizScore, getQuizAttempts, submitQuizAttempt } from '@/services/quizzes'
+import { materialIconFor } from '@/lib/materials'
 
 const LETTERS = ['A', 'B', 'C', 'D', 'E', 'F']
 
-export default function QuizTaker({ quiz, onPassed }) {
+export default function QuizTaker({ quiz, onPassed, xpReward, coinsReward, materialName, materialQty }) {
     const questions = useMemo(() => quiz?.questions ?? [], [quiz])
     const [answers, setAnswers] = useState({})
     const [result, setResult] = useState(null)
@@ -66,11 +67,19 @@ export default function QuizTaker({ quiz, onPassed }) {
                     <Trophy size={12} /> Pass at {quiz.passing_score ?? 70}%
                 </span>
                 <span className='flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#FBF0D9] text-[#8A6D2B] font-medium'>
-                    <Zap size={12} /> {quiz.xp_reward ?? 0} XP
+                    <Zap size={12} /> {xpReward ?? 0} XP
                 </span>
                 <span className='flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#FBF0D9] text-[#8A6D2B] font-medium'>
-                    <Coins size={12} /> {quiz.coins_reward ?? 0} coins
+                    <Coins size={12} /> {coinsReward ?? 0} coins
                 </span>
+                {materialQty > 0 && (() => {
+                    const MaterialIcon = materialIconFor(materialName)
+                    return (
+                        <span className='flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#FBF0D9] text-[#8A6D2B] font-medium'>
+                            <MaterialIcon size={12} /> {materialQty} {materialName}
+                        </span>
+                    )
+                })()}
                 {best != null && (
                     <span className='flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#E1F0DF] text-[#3E7A42] font-medium'>
                         Best: {best}%
@@ -80,13 +89,12 @@ export default function QuizTaker({ quiz, onPassed }) {
 
             {/* Result banner */}
             {result && (() => {
-                const lessonXp = result.lessonReward?.awarded ? (result.lessonReward.xp ?? 0) : 0
-                const lessonCoins = result.lessonReward?.awarded ? (result.lessonReward.coins ?? 0) : 0
-                const quizXp = result.quizReward?.awarded ? (result.quizReward.xp ?? 0) : 0
-                const quizCoins = result.quizReward?.awarded ? (result.quizReward.coins ?? 0) : 0
-                const earnedXp = lessonXp + quizXp
-                const earnedCoins = lessonCoins + quizCoins
-                const rewardsKnown = !!(result.lessonReward || result.quizReward)
+                const earnedXp = result.lessonReward?.awarded ? (result.lessonReward.xp ?? 0) : 0
+                const earnedCoins = result.lessonReward?.awarded ? (result.lessonReward.coins ?? 0) : 0
+                const earnedMaterialName = result.lessonReward?.awarded ? result.lessonReward.material_name : null
+                const earnedMaterialQty = result.lessonReward?.awarded ? (result.lessonReward.material_qty ?? 0) : 0
+                const MaterialIcon = earnedMaterialName ? materialIconFor(earnedMaterialName) : null
+                const rewardsKnown = !!result.lessonReward
                 return (
                 <div className={`rounded-2xl border p-5 mb-6 ${result.passed ? 'border-[#A9D8AE] bg-[#EFF7EE]' : 'border-[#E5C0B5] bg-[#FBF1ED]'}`}>
                     <div className='flex items-center gap-3'>
@@ -106,6 +114,11 @@ export default function QuizTaker({ quiz, onPassed }) {
                                         <>
                                             <span className='flex items-center gap-1'><Zap size={12} /> +{earnedXp} XP</span>
                                             <span className='flex items-center gap-1'><Coins size={12} /> +{earnedCoins}</span>
+                                            {earnedMaterialQty > 0 && (
+                                                <span className='flex items-center gap-1'>
+                                                    <MaterialIcon size={12} /> +{earnedMaterialQty} {earnedMaterialName}
+                                                </span>
+                                            )}
                                         </>
                                     ) : (
                                         'Rewards already claimed for this lesson.'

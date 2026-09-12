@@ -87,16 +87,6 @@ export async function awardLessonComplete(lessonId) {
 }
 
 /**
- * Award quiz XP/coins once per (user, quiz) — first pass only.
- */
-export async function awardQuizPass(quizId, attemptId = null) {
-    const { data, error } = await supabase.rpc('award_quiz_pass', { p_quiz_id: quizId, p_attempt_id: attemptId })
-    if (error) throw error
-    notifyWalletChanged()
-    return data
-}
-
-/**
  * Spend coins (shop, buildings). Returns { ok, coins, error? } —
  * ok:false with error:'insufficient_funds' instead of throwing.
  */

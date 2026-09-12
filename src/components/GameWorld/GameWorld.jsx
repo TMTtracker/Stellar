@@ -1,9 +1,89 @@
+import { useEffect, useState } from "react"
 import { Canvas } from "@react-three/fiber"
 import { OrbitControls, Grid } from "@react-three/drei"
+import { ArrowUp, ArrowDown, ArrowLeft, ArrowRight, RotateCw, Trash2 } from "lucide-react"
 import Camp from "../HeroModel/Camp"
 import { Building, GrassField, Tree } from "./WorldProps"
+import WindMill from "./WindMill"
+import { listMyBuildings, moveBuilding, rotateBuilding, removeBuilding, RESOURCES_EVENT } from "@/services/resources"
+
+// Which 3D model represents each build_menu id - only data_structures_hall
+// has one so far (a test of the placement pipeline); any other build_id
+// simply doesn't render anything yet.
+const BUILDING_MODELS = {
+    data_structures_hall: WindMill
+}
+
+// Placed buildings get spread out relative to this origin. Grid
+// coordinates (pos_x/pos_y, small integers) are scaled here into real
+// world-space spacing - one grid step = one MOVE_STEP. Grid (0,0), where
+// every newly-placed building starts, sits just off the camp so it's
+// immediately visible in the default camera framing instead of tucked in
+// a corner you have to pan to find.
+const PLACEMENT_ORIGIN = [4, 0, -6]
+const MOVE_STEP = 4
+
+function toWorldPosition(b) {
+    return [
+        PLACEMENT_ORIGIN[0] + (b.pos_x ?? 0) * MOVE_STEP,
+        0,
+        PLACEMENT_ORIGIN[2] + (b.pos_y ?? 0) * MOVE_STEP
+    ]
+}
 
 function GameWorld() {
+    const [buildings, setBuildings] = useState([])
+    const [selectedId, setSelectedId] = useState(null)
+    const [busy, setBusy] = useState(false)
+
+    useEffect(() => {
+        function load() {
+            listMyBuildings().then(setBuildings).catch(() => {})
+        }
+        load()
+        window.addEventListener(RESOURCES_EVENT, load)
+        return () => window.removeEventListener(RESOURCES_EVENT, load)
+    }, [])
+
+    const selected = buildings.find(b => b.id === selectedId) ?? null
+
+    async function handleMove(dx, dy) {
+        if (!selected || busy) return
+        setBusy(true)
+        try {
+            await moveBuilding(selected.id, { pos_x: (selected.pos_x ?? 0) + dx, pos_y: (selected.pos_y ?? 0) + dy })
+        } catch (e) {
+            console.error('[gameworld] move failed:', e.message)
+        } finally {
+            setBusy(false)
+        }
+    }
+
+    async function handleRotate() {
+        if (!selected || busy) return
+        setBusy(true)
+        try {
+            await rotateBuilding(selected.id, ((selected.rotation ?? 0) + 90) % 360)
+        } catch (e) {
+            console.error('[gameworld] rotate failed:', e.message)
+        } finally {
+            setBusy(false)
+        }
+    }
+
+    async function handleRemove() {
+        if (!selected || busy) return
+        setBusy(true)
+        try {
+            await removeBuilding(selected.id)
+            setSelectedId(null)
+        } catch (e) {
+            console.error('[gameworld] remove failed:', e.message)
+        } finally {
+            setBusy(false)
+        }
+    }
+
     return (
         <div className='w-full h-full bg-[#effaf4]'>
             <Canvas
@@ -18,6 +98,7 @@ function GameWorld() {
                 onCreated={({ camera }) => {
                     camera.lookAt(0, 0, 0)
                 }}
+                onPointerMissed={() => setSelectedId(null)}
             >
                 <color attach='background' args={['#effaf4']} />
 
@@ -80,6 +161,21 @@ function GameWorld() {
                 <Building position={[-3, 0, 12]} width={4} height={4.5} depth={4} wallColor="#cbb4a3" roofColor="#8a6a5a" />
                 <Building position={[3, 0, 11]} width={6} height={7} depth={5} wallColor="#d9c7b8" roofColor="#5a6b7a" />
 
+                {/* Player-placed buildings from user_building_positions */}
+                {buildings.map(b => {
+                    const Model = BUILDING_MODELS[b.build_id]
+                    if (!Model) return null
+                    return (
+                        <Model
+                            key={b.id}
+                            position={toWorldPosition(b)}
+                            rotationDeg={b.rotation ?? 0}
+                            selected={b.id === selectedId}
+                            onSelect={() => setSelectedId(b.id)}
+                        />
+                    )
+                })}
+
                 <OrbitControls
                     makeDefault
                     target={[0, 0, 0]}
@@ -90,6 +186,63 @@ function GameWorld() {
                     maxZoom={50}
                 />
             </Canvas>
+
+            {/* Selected-building toolbar - front/back = -Z/+Z, left/right = -X/+X,
+                each move/rotate snaps by exactly one grid step. */}
+            {selected && (
+                <div className='absolute bottom-24 left-1/2 -translate-x-1/2 flex items-center gap-1.5 bg-white/95 border border-[#C9DDC4] rounded-2xl px-2 py-1.5 shadow-sm z-30'>
+                    <button
+                        aria-label='Move front'
+                        disabled={busy}
+                        onClick={() => handleMove(0, -1)}
+                        className='w-9 h-9 flex items-center justify-center rounded-lg text-[#6A6F73] hover:bg-[#DDF0E1] hover:text-[#1F2225] disabled:opacity-50'
+                    >
+                        <ArrowUp size={17} />
+                    </button>
+                    <button
+                        aria-label='Move back'
+                        disabled={busy}
+                        onClick={() => handleMove(0, 1)}
+                        className='w-9 h-9 flex items-center justify-center rounded-lg text-[#6A6F73] hover:bg-[#DDF0E1] hover:text-[#1F2225] disabled:opacity-50'
+                    >
+                        <ArrowDown size={17} />
+                    </button>
+                    <button
+                        aria-label='Move left'
+                        disabled={busy}
+                        onClick={() => handleMove(-1, 0)}
+                        className='w-9 h-9 flex items-center justify-center rounded-lg text-[#6A6F73] hover:bg-[#DDF0E1] hover:text-[#1F2225] disabled:opacity-50'
+                    >
+                        <ArrowLeft size={17} />
+                    </button>
+                    <button
+                        aria-label='Move right'
+                        disabled={busy}
+                        onClick={() => handleMove(1, 0)}
+                        className='w-9 h-9 flex items-center justify-center rounded-lg text-[#6A6F73] hover:bg-[#DDF0E1] hover:text-[#1F2225] disabled:opacity-50'
+                    >
+                        <ArrowRight size={17} />
+                    </button>
+                    <span className='w-px h-6 bg-[#C9DDC4] mx-0.5' />
+                    <button
+                        aria-label='Rotate 90 degrees'
+                        disabled={busy}
+                        onClick={handleRotate}
+                        className='w-9 h-9 flex items-center justify-center rounded-lg text-[#6A6F73] hover:bg-[#DDF0E1] hover:text-[#1F2225] disabled:opacity-50'
+                    >
+                        <RotateCw size={17} />
+                    </button>
+                    <span className='w-px h-6 bg-[#C9DDC4] mx-0.5' />
+                    <button
+                        aria-label='Remove building'
+                        disabled={busy}
+                        onClick={handleRemove}
+                        className='w-9 h-9 flex items-center justify-center rounded-lg text-[#C4634F] hover:bg-[#FBF1ED] disabled:opacity-50'
+                    >
+                        <Trash2 size={17} />
+                    </button>
+                </div>
+            )}
         </div>
     )
 }

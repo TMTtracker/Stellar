@@ -1,9 +1,12 @@
-import { useState } from 'react'
-import { Backpack, Trophy, Map, ShoppingBag, BookOpen, Bell, Settings, Flame, Zap, Banknote, Building2, Building, Warehouse, Lock, BrickWall, TreeDeciduous, Gem, Mountain, Pickaxe, Beaker, Lightbulb, Logs, Feather, Clock, X } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Backpack, Trophy, Map, ShoppingBag, BookOpen, Bell, Settings, Flame, Zap, Banknote, Building2, Building, Warehouse, Lock, BrickWall, TreeDeciduous, Gem, Mountain, Pickaxe, Beaker, Lightbulb, Feather, Clock, X, Hammer, Check } from 'lucide-react'
 import ProtectedLayout from '@/components/ProtectedLayout/ProtectedLayout'
 import GameWorld from '@/components/GameWorld/GameWorld'
 import { useNavigate } from 'react-router-dom'
+import { useAuth } from '@/hooks/useAuth'
 import { useWallet } from '@/hooks/useWallet'
+import { usePlayerResources } from '@/hooks/usePlayerResources'
+import { listBuildMenu, listMyUnlockedBuildings, buildStructure, buyMissingMaterials, placeNewBuilding, RESOURCES_EVENT } from '@/services/resources'
 import { DollarSign } from 'lucide-react'
 
 const streak = 9
@@ -44,70 +47,38 @@ const friends = [
 ]
 
 const nav = [
-    { label: 'Courses', icon: BookOpen, to: '/courses' },
-    { label: 'Leaderboard', icon: Trophy, to: '/leaderboard' },
-    { label: 'Shop', icon: ShoppingBag, to: '/shop' },
-    { label: 'Inventory', icon: Backpack, to: null },
-    { label: 'World map', icon: Map, to: '/' }
+    { id: 'courses', label: 'Courses', icon: BookOpen, to: '/courses' },
+    { id: 'leaderboard', label: 'Leaderboard', icon: Trophy, to: '/leaderboard' },
+    { id: 'shop', label: 'Shop', icon: ShoppingBag, to: '/shop' },
+    { id: 'inventory', label: 'Inventory', icon: Backpack, to: null },
+    { id: 'your-builds', label: 'Your Builds', icon: Hammer, to: null },
+    { id: 'world-map', label: 'World map', icon: Map, to: '/' }
 ]
 
-const buildItems = [
-    {
-        icon: Building2,
-        iconColor: 'text-[#A9D8AE]',
-        name: 'Data structures hall',
-        desc: 'Unlocks arrays through trees content.',
-        materials: [
-            { icon: BrickWall, name: 'Bricks', current: 8, total: 8, ok: true },
-            { icon: TreeDeciduous, name: 'Timber', current: 2, total: 5, ok: false }
-        ],
-        action: 'Buy missing materials',
-        cost: '90 coins',
-        style: 'bg-[#A9D8AE] text-white hover:bg-[#98CD9E]'
-    },
-    {
-        icon: Building,
-        iconColor: 'text-[#141814]',
-        name: 'Algorithms tower',
-        desc: 'Unlocks sorting and graph content.',
-        materials: [
-            { icon: TreeDeciduous, name: 'Timber', current: 12, total: 12, ok: true },
-            { icon: Gem, name: 'Rare gem', current: 1, total: 1, ok: true }
-        ],
-        action: 'Build now',
-        style: 'border-2 border-[#A9D8AE] text-[#1F2225] hover:bg-[#DDF0E1]'
-    },
-    {
-        icon: Warehouse,
-        iconColor: 'text-[#6A6F73]',
-        name: 'Interview prep dojo',
-        desc: 'Unlocks mock interview mode.',
-        materials: [
-            { icon: BrickWall, name: 'Bricks', current: 3, total: 10, ok: false },
-            { icon: Gem, name: 'Rare gem', current: 0, total: 2, ok: false }
-        ],
-        action: 'Locked — complete more lessons',
-        disabled: true,
-        style: 'bg-[#CFE7D2] text-[#8BA089]'
-    },
-    {
-        icon: Lock,
-        iconColor: 'text-[#6A6F73]',
-        name: 'Coding coliseum',
-        desc: 'Reach level 20 to unlock this building.',
-        locked: true
-    }
-]
+// Visual metadata for each building - icon/color/description aren't stored
+// in build_menu (that table only holds the numeric requirements), so this
+// maps a build_menu.id to how it's presented. Falls back to a generic look
+// for any future building id not listed here.
+const BUILD_DISPLAY = {
+    data_structures_hall: { icon: Building2, iconColor: 'text-[#A9D8AE]', desc: 'Unlocks arrays through trees content.' },
+    algorithms_tower: { icon: Building, iconColor: 'text-[#141814]', desc: 'Unlocks sorting and graph content.' },
+    interview_prep_dojo: { icon: Warehouse, iconColor: 'text-[#6A6F73]', desc: 'Unlocks mock interview mode.' },
+    coding_coliseum: { icon: Lock, iconColor: 'text-[#6A6F73]', desc: 'Reach level 20 to unlock this building.' }
+}
+const DEFAULT_BUILD_DISPLAY = { icon: Building2, iconColor: 'text-[#6A6F73]', desc: '' }
 
-const buildMaterials = [
-    { icon: BrickWall, name: 'Bricks', count: 11 },
-    { icon: Logs, name: 'Timber', count: 14 },
-    { icon: Gem, name: 'Rare gems', count: 1, color: 'text-[#141814]' },
-    { icon: Mountain, name: 'Stone', count: 6 },
-    { icon: Pickaxe, name: 'Iron', count: 4 },
-    { icon: Beaker, name: 'Glass', count: 3, color: 'text-[#A9D8AE]' },
-    { icon: Lightbulb, name: 'Crystal shard', count: 2, color: 'text-[#E8933E]' },
-    { icon: Feather, name: 'Fabric', count: 7 }
+// Maps a player_resources column to its build_menu "_required" column and
+// display icon/label - drives both the Inventory panel and each build
+// menu card's requirement rows.
+const MATERIAL_FIELDS = [
+    { key: 'bricks', required: 'bricks_required', label: 'Bricks', icon: BrickWall },
+    { key: 'timber', required: 'timber_required', label: 'Timber', icon: TreeDeciduous },
+    { key: 'rare_gem', required: 'rare_gem_required', label: 'Rare gem', icon: Gem },
+    { key: 'stone', required: 'stone_required', label: 'Stone', icon: Mountain },
+    { key: 'iron', required: 'iron_required', label: 'Iron', icon: Pickaxe },
+    { key: 'glass', required: 'glass_required', label: 'Glass', icon: Beaker },
+    { key: 'crystal_shard', required: 'crystal_shard_required', label: 'Crystal shard', icon: Lightbulb },
+    { key: 'fabric', required: 'fabric_required', label: 'Fabric', icon: Feather }
 ]
 
 const consumables = [
@@ -122,10 +93,51 @@ const consumables = [
 export default function Dashboard() {
     const navigate = useNavigate()
     const [showInventory, setShowInventory] = useState(false)
+    const [showYourBuilds, setShowYourBuilds] = useState(false)
+    const { user } = useAuth()
     const { coins, level, pct } = useWallet()
+    const resources = usePlayerResources()
+    const [buildMenu, setBuildMenu] = useState([])
+    const [unlockedBuildings, setUnlockedBuildings] = useState([])
+    const [placingId, setPlacingId] = useState('')
 
-    // success / danger token colors
-    const statusColor = ok => (ok ? 'text-[#A9D8AE]' : 'text-[#D9605B]')
+    const displayName = user?.user_metadata?.full_name || user?.email || 'Stellar Cadet'
+    const initials = displayName.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
+    const totalMaterialCount = MATERIAL_FIELDS.reduce((sum, f) => sum + (resources[f.key] ?? 0), 0)
+    const unlockedIds = new Set(unlockedBuildings.map(b => b.build_id))
+
+    useEffect(() => {
+        let cancelled = false
+        listBuildMenu().then(rows => {
+            if (!cancelled) setBuildMenu(rows)
+        })
+        return () => {
+            cancelled = true
+        }
+    }, [])
+
+    useEffect(() => {
+        function loadUnlocked() {
+            listMyUnlockedBuildings().then(setUnlockedBuildings).catch(() => {})
+        }
+        loadUnlocked()
+        window.addEventListener(RESOURCES_EVENT, loadUnlocked)
+        return () => window.removeEventListener(RESOURCES_EVENT, loadUnlocked)
+    }, [])
+
+    // Panel stays open after "Use" - an unlocked type can be placed as
+    // many times as you want, so closing on every click would just add
+    // friction for someone placing several instances in a row.
+    async function handleUseBuilding(building) {
+        setPlacingId(building.build_id)
+        try {
+            await placeNewBuilding(building.build_id, { pos_x: 0, pos_y: 0, rotation: 0 })
+        } catch (e) {
+            console.error('[dashboard] place failed:', e.message)
+        } finally {
+            setPlacingId('')
+        }
+    }
 
     return (
         <ProtectedLayout>
@@ -137,9 +149,9 @@ export default function Dashboard() {
 
                 {/* Top-left: profile chip + streak */}
                 <div className='absolute top-4 left-4 flex items-center gap-2.5 bg-white/95 border border-[#C9DDC4] rounded-xl px-3 py-2 shadow-sm'>
-                    <div className='w-9 h-9 rounded-full bg-[#141814] text-white flex items-center justify-center text-xs font-bold'>MA</div>
+                    <div className='w-9 h-9 rounded-full bg-[#141814] text-white flex items-center justify-center text-xs font-bold'>{initials}</div>
                     <div>
-                        <div className='text-sm font-bold leading-none'>Sayok · Lv {level}</div>
+                        <div className='text-sm font-bold leading-none'>{displayName} · Lv {level}</div>
                         <div className='w-28 h-1.5 rounded-full bg-[#EAF2E6] mt-2 overflow-hidden'>
                             <div className='h-full bg-[#A9D8AE] rounded-full' style={{ width: `${pct}%` }} />
                         </div>
@@ -202,7 +214,7 @@ export default function Dashboard() {
                     </button>
                     <button aria-label='Inventory' onClick={() => setShowInventory(true)} className='relative flex items-center gap-2 bg-white/95 border border-[#C9DDC4] rounded-xl px-3 py-1.5 hover:border-[#A9D8AE] transition-colors'>
                         <Backpack size={16} className='text-[#A9D8AE]' />
-                        <span className='text-sm font-bold'>38</span>
+                        <span className='text-sm font-bold'>{totalMaterialCount}</span>
                         <span className='absolute -top-1.5 -right-1.5 w-4 h-4 bg-[#A9D8AE] text-white text-[10px] font-bold rounded-full flex items-center justify-center'>3</span>
                     </button>
                     <button aria-label='Notifications' className='w-9 h-9 bg-white/95 border border-[#C9DDC4] rounded-xl flex items-center justify-center text-[#6A6F73] hover:border-[#A9D8AE] hover:text-[#A9D8AE] transition-colors'>
@@ -233,12 +245,13 @@ export default function Dashboard() {
 
                 {/* Bottom nav bar */}
                 <div className='absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-1 bg-white/95 border border-[#C9DDC4] rounded-2xl px-2 py-1.5 shadow-sm'>
-                    {nav.map(({ label, icon: Icon, to }) => (
+                    {nav.map(({ id, label, icon: Icon, to }) => (
                         <button
-                            key={label}
+                            key={id}
                             onClick={() => {
                                 if (to) navigate(to)
-                                else setShowInventory(true)
+                                else if (id === 'inventory') setShowInventory(true)
+                                else if (id === 'your-builds') setShowYourBuilds(true)
                             }}
                             className='flex flex-col items-center gap-0.5 px-2.5 py-1.5 rounded-lg hover:bg-[#DDF0E1] transition-colors'
                         >
@@ -263,11 +276,11 @@ export default function Dashboard() {
 
                             <p className='text-[11px] font-bold tracking-wider text-[#6A6F73] mb-2'>BUILD MATERIALS</p>
                             <div className='grid grid-cols-4 gap-2 mb-4'>
-                                {buildMaterials.map(material => (
-                                    <div key={material.name} className='flex flex-col items-center justify-center rounded-xl bg-[#EEF6ED] py-2.5'>
-                                        <material.icon size={20} className={material.color || 'text-[#6A6F73]'} />
-                                        <span className='text-[12px] font-medium mt-1'>{material.count}</span>
-                                        <span className='text-[10px] text-[#6A6F73]'>{material.name}</span>
+                                {MATERIAL_FIELDS.map(f => (
+                                    <div key={f.key} className='flex flex-col items-center justify-center rounded-xl bg-[#EEF6ED] py-2.5'>
+                                        <f.icon size={20} className='text-[#6A6F73]' />
+                                        <span className='text-[12px] font-medium mt-1'>{resources[f.key] ?? 0}</span>
+                                        <span className='text-[10px] text-[#6A6F73]'>{f.label}</span>
                                     </div>
                                 ))}
                             </div>
@@ -294,53 +307,178 @@ export default function Dashboard() {
                     </>
                 )}
 
+                {/* Your Builds panel - building types you've permanently unlocked.
+                    "Use" places a fresh instance each time; ownership never
+                    leaves this list, even after removing an instance from
+                    the grid. */}
+                {showYourBuilds && (
+                    <>
+                        <div className='absolute inset-0 bg-black/20' onClick={() => setShowYourBuilds(false)} />
+                        <div className='absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[420px] max-w-[92vw] max-h-[80vh] overflow-auto bg-white border border-[#C9DDC4] rounded-2xl p-5 shadow-2xl z-10'>
+                            <div className='flex items-center justify-between mb-3'>
+                                <span className='text-base font-medium'>Your Builds</span>
+                                <button onClick={() => setShowYourBuilds(false)} aria-label='Close your builds' className='text-[#6A6F73] hover:text-[#1F2225]'>
+                                    <X size={16} />
+                                </button>
+                            </div>
+
+                            {unlockedBuildings.length === 0 && (
+                                <p className='text-[12px] text-[#6A6F73]'>Nothing unlocked yet - build one from the Build menu.</p>
+                            )}
+
+                            <div className='space-y-2'>
+                                {unlockedBuildings.map(b => {
+                                    const display = BUILD_DISPLAY[b.build_id] ?? DEFAULT_BUILD_DISPLAY
+                                    const Icon = display.icon
+                                    return (
+                                        <div key={b.build_id} className='flex items-center justify-between rounded-xl bg-[#EEF6ED] px-3 py-2.5'>
+                                            <div className='flex items-center gap-2.5 text-[13px] font-medium'>
+                                                <span className='w-8 h-8 rounded-lg bg-white flex items-center justify-center shrink-0'>
+                                                    <Icon size={16} className={display.iconColor} />
+                                                </span>
+                                                {b.build_menu?.name ?? b.build_id}
+                                            </div>
+                                            <button
+                                                onClick={() => handleUseBuilding(b)}
+                                                disabled={placingId === b.build_id}
+                                                className='rounded-full border border-[#C9DDC4] bg-white px-3 py-1.5 text-[11px] font-medium hover:border-[#A9D8AE] hover:text-[#1F2225] disabled:opacity-60'
+                                            >
+                                                {placingId === b.build_id ? 'Placing…' : 'Use'}
+                                            </button>
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        </div>
+                    </>
+                )}
+
                 <div className='absolute bottom-4 right-4 w-[520px] max-w-[92vw] max-h-[88vh] overflow-auto bg-white border border-[#C9DDC4] rounded-2xl p-5 shadow-2xl z-20'>
                     <div className='flex items-center justify-between mb-3'>
                         <span className='text-base font-medium'>Build menu</span>
                     </div>
 
                     <div className='grid grid-cols-2 gap-2.5'>
-                        {buildItems.map(item => {
-                            const ItemIcon = item.icon
-                            return (
-                                <div key={item.name} className='rounded-xl border border-[#C9DDC4] p-2.5'>
-                                    <div className='flex items-center gap-1.5 text-[13px] font-medium mb-1.5'>
-                                        <ItemIcon size={16} className={item.iconColor} />
-                                        {item.name}
-                                    </div>
-                                    <p className='text-[12px] text-[#6A6F73] mb-2'>{item.desc}</p>
-
-                                    {!item.locked && (
-                                        <>
-                                            {item.materials.map(mat => {
-                                                const MatIcon = mat.icon
-                                                return (
-                                                    <div key={mat.name} className='text-[12px] flex items-center justify-between mb-1.5'>
-                                                        <span className='flex items-center gap-1'>
-                                                            <MatIcon size={13} />
-                                                            {mat.name}
-                                                        </span>
-                                                        <span className={statusColor(mat.ok)}>
-                                                            {mat.current} / {mat.total}
-                                                        </span>
-                                                    </div>
-                                                )
-                                            })}
-
-                                            <button disabled={item.disabled} className={`w-full mt-2 text-[12px] py-1.5 rounded-full transition-colors ${item.style}`}>
-                                                {item.action}
-                                                {item.cost ? ` — ${item.cost}` : ''}
-                                            </button>
-                                        </>
-                                    )}
-
-                                    {item.locked && <div className='text-[12px] text-[#6A6F73]'>{item.desc}</div>}
-                                </div>
-                            )
-                        })}
+                        {buildMenu.map(build => (
+                            <BuildMenuCard
+                                key={build.id}
+                                build={build}
+                                resources={resources}
+                                level={level}
+                                unlocked={unlockedIds.has(build.id)}
+                            />
+                        ))}
+                        {buildMenu.length === 0 && (
+                            <p className='col-span-2 text-[12px] text-[#6A6F73]'>No buildings available yet.</p>
+                        )}
                     </div>
                 </div>
             </div>
         </ProtectedLayout>
+    )
+}
+
+// One build_menu row rendered as a card: shows only the materials it
+// actually requires (>0), and switches between "Build now" (all met) and
+// "Buy missing materials — N coins" (not met) - previously both the
+// requirement numbers and the button were hardcoded per building with no
+// real comparison at all.
+function BuildMenuCard({ build, resources, level, unlocked }) {
+    const [busy, setBusy] = useState(false)
+    const [message, setMessage] = useState('')
+
+    const display = BUILD_DISPLAY[build.id] ?? { ...DEFAULT_BUILD_DISPLAY, desc: build.name }
+    const ItemIcon = display.icon
+    const levelMet = level >= (build.unlock_level ?? 1)
+
+    const requirements = MATERIAL_FIELDS
+        .map(f => ({ ...f, required: build[f.required] ?? 0, have: resources[f.key] ?? 0 }))
+        .filter(f => f.required > 0)
+    const allMet = requirements.every(f => f.have >= f.required)
+
+    async function handleBuild() {
+        setBusy(true)
+        setMessage('')
+        try {
+            const res = await buildStructure(build.id)
+            setMessage(res?.ok ? 'Crafted! Find it in Your Builds to place it on the map.' : "You don't have enough materials for this.")
+        } catch (e) {
+            setMessage(e.message ?? 'Build failed.')
+        } finally {
+            setBusy(false)
+        }
+    }
+
+    async function handleBuyMissing() {
+        setBusy(true)
+        setMessage('')
+        try {
+            const res = await buyMissingMaterials(build.id)
+            setMessage(res?.ok ? 'Materials purchased!' : `Not enough coins — you have ${res?.coins ?? 0}.`)
+        } catch (e) {
+            setMessage(e.message ?? 'Purchase failed.')
+        } finally {
+            setBusy(false)
+        }
+    }
+
+    return (
+        <div className='rounded-xl border border-[#C9DDC4] p-2.5'>
+            <div className='flex items-center gap-1.5 text-[13px] font-medium mb-1.5'>
+                <ItemIcon size={16} className={display.iconColor} />
+                {build.name}
+            </div>
+            <p className='text-[12px] text-[#6A6F73] mb-2'>{display.desc}</p>
+
+            {!levelMet && (
+                <div className='text-[12px] text-[#6A6F73]'>Reach level {build.unlock_level} to unlock this building.</div>
+            )}
+
+            {levelMet && unlocked && (
+                <div className='flex items-center gap-1.5 text-[12px] font-medium text-[#3E7A42] bg-[#E1F0DF] rounded-lg px-2.5 py-2'>
+                    <Check size={13} strokeWidth={3} /> Unlocked — place it from Your Builds.
+                </div>
+            )}
+
+            {levelMet && !unlocked && (
+                <>
+                    {requirements.map(f => {
+                        const MatIcon = f.icon
+                        const ok = f.have >= f.required
+                        return (
+                            <div key={f.key} className='text-[12px] flex items-center justify-between mb-1.5'>
+                                <span className='flex items-center gap-1'>
+                                    <MatIcon size={13} />
+                                    {f.label}
+                                </span>
+                                <span className={ok ? 'text-[#A9D8AE]' : 'text-[#D9605B]'}>
+                                    {f.have} / {f.required}
+                                </span>
+                            </div>
+                        )
+                    })}
+
+                    {message && <p className='text-[11px] text-[#6A6F73] mb-1.5'>{message}</p>}
+
+                    {allMet ? (
+                        <button
+                            onClick={handleBuild}
+                            disabled={busy}
+                            className='w-full mt-2 text-[12px] py-1.5 rounded-full transition-colors border-2 border-[#A9D8AE] text-[#1F2225] hover:bg-[#DDF0E1] disabled:opacity-60'
+                        >
+                            {busy ? 'Building…' : 'Build now'}
+                        </button>
+                    ) : (
+                        <button
+                            onClick={handleBuyMissing}
+                            disabled={busy}
+                            className='w-full mt-2 text-[12px] py-1.5 rounded-full transition-colors bg-[#A9D8AE] text-white hover:bg-[#98CD9E] disabled:opacity-60'
+                        >
+                            {busy ? 'Buying…' : `Buy missing materials — ${build.coin_cost} coins`}
+                        </button>
+                    )}
+                </>
+            )}
+        </div>
     )
 }
