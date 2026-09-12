@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Backpack, Trophy, Map, ShoppingBag, BookOpen, Bell, Settings, Flame, Zap, Banknote, Building2, Building, Warehouse, Lock, BrickWall, TreeDeciduous, Gem, Mountain, Pickaxe, Beaker, Lightbulb, Feather, Clock, X, Hammer, Check } from 'lucide-react'
+import { Backpack, Trophy, Map, ShoppingBag, BookOpen, Bell, Settings, Flame, Zap, Banknote, Building2, Building, Warehouse, Lock, BrickWall, TreeDeciduous, Gem, Mountain, Pickaxe, Beaker, Lightbulb, Feather, Clock, X, Hammer, Check, User } from 'lucide-react'
 import ProtectedLayout from '@/components/ProtectedLayout/ProtectedLayout'
 import GameWorld from '@/components/GameWorld/GameWorld'
 import { useNavigate } from 'react-router-dom'
@@ -34,6 +34,7 @@ const friends = [
 ]
 
 const nav = [
+    { id: 'profile', label: 'Profile', icon: User, to: '/profile' },
     { id: 'courses', label: 'Courses', icon: BookOpen, to: '/courses' },
     { id: 'leaderboard', label: 'Leaderboard', icon: Trophy, to: '/leaderboard' },
     { id: 'shop', label: 'Shop', icon: ShoppingBag, to: '/shop' },
@@ -154,8 +155,12 @@ export default function Dashboard() {
                     <GameWorld />
                 </div>
 
-                {/* Top-left: profile chip + streak */}
-                <div className='absolute top-4 left-4 flex items-center gap-2.5 bg-white/95 border border-[#C9DDC4] rounded-xl px-3 py-2 shadow-sm'>
+                {/* Top-left: profile chip + streak — links to /profile */}
+                <button
+                    onClick={() => navigate('/profile')}
+                    className='absolute top-4 left-4 flex items-center gap-2.5 bg-white/95 border border-[#C9DDC4] rounded-xl px-3 py-2 shadow-sm hover:border-[#A9D8AE] hover:bg-white transition-colors text-left'
+                    aria-label="View profile"
+                >
                     <div className='w-9 h-9 rounded-full bg-[#141814] text-white flex items-center justify-center text-xs font-bold'>{initials}</div>
                     <div>
                         <div className='text-sm font-bold leading-none'>{displayName} · Lv {level}</div>
@@ -167,7 +172,7 @@ export default function Dashboard() {
                         <Flame size={15} fill='currentColor' />
                         {streak} Days Streak
                     </div>
-                </div>
+                </button>
 
                 {/* Top-left: Daily lessons panel */}
                 <div className='absolute top-[84px] left-4 w-[280px] bg-white/95 border border-[#C9DDC4] rounded-xl px-4 py-4 shadow-sm'>
