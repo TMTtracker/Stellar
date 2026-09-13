@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
-import { Backpack, Trophy, Map, ShoppingBag, BookOpen, Bell, Settings, Flame, Zap, Banknote, Building2, Building, Warehouse, Lock, BrickWall, TreeDeciduous, Gem, Mountain, Pickaxe, Beaker, Lightbulb, Feather, Clock, X, Hammer, Check } from 'lucide-react'
+import { Backpack, Trophy, Map, ShoppingBag, BookOpen, Bell, Settings, UserRound, Moon, Flame, Zap, Banknote, Building2, Building, Warehouse, Lock, BrickWall, TreeDeciduous, Gem, Mountain, Pickaxe, Beaker, Lightbulb, Feather, Clock, X, Hammer, Check } from 'lucide-react'
 import ProtectedLayout from '@/components/ProtectedLayout/ProtectedLayout'
 import GameWorld from '@/components/GameWorld/GameWorld'
+import Profile from '@/components/Profile/Profile'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 import { useWallet } from '@/hooks/useWallet'
@@ -80,7 +81,9 @@ const consumables = [
 export default function Dashboard() {
     const navigate = useNavigate()
     const [showInventory, setShowInventory] = useState(false)
+    const [showProfile, setShowProfile] = useState(false)
     const [showYourBuilds, setShowYourBuilds] = useState(false)
+    const [settingsOpen, setSettingsOpen] = useState(false)
     const { user } = useAuth()
     const { coins, level, pct } = useWallet()
     const resources = usePlayerResources()
@@ -250,9 +253,22 @@ export default function Dashboard() {
                     <button aria-label='Notifications' className='w-9 h-9 bg-white/95 border border-[#C9DDC4] rounded-xl flex items-center justify-center text-[#6A6F73] hover:border-[#A9D8AE] hover:text-[#A9D8AE] transition-colors'>
                         <Bell size={16} />
                     </button>
-                    <button aria-label='Settings' className='w-9 h-9 bg-white/95 border border-[#C9DDC4] rounded-xl flex items-center justify-center text-[#6A6F73] hover:border-[#A9D8AE] hover:text-[#A9D8AE] transition-colors'>
-                        <Settings size={16} />
-                    </button>
+                    <div className='relative'>
+                        <button aria-label='Settings' aria-expanded={settingsOpen} onClick={() => setSettingsOpen(open => !open)} className='w-9 h-9 bg-white/95 border border-[#C9DDC4] rounded-xl flex items-center justify-center text-[#6A6F73] hover:border-[#A9D8AE] hover:text-[#A9D8AE] transition-colors'>
+                            <Settings size={16} />
+                        </button>
+                        {settingsOpen && (
+                            <div className='absolute right-0 top-11 z-20 w-52 rounded-2xl border border-[#C9DDC4] bg-white p-2 text-[#1F2225] shadow-xl'>
+                                <button onClick={() => { setSettingsOpen(false); setShowProfile(true) }} className='flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold hover:bg-[#EFFAF4]'>
+                                    <UserRound size={16} /> Profile settings
+                                </button>
+                                <button disabled title='Night mode is coming soon' className='flex w-full cursor-not-allowed items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-[#A0A6A1]'>
+                                    <Moon size={16} /> Night mode
+                                    <span className='ml-auto text-[10px] font-bold uppercase tracking-wide'>Soon</span>
+                                </button>
+                            </div>
+                        )}
+                    </div>
                 </div>
 
                 {/* Top-center: active quest banner */}
@@ -333,6 +349,15 @@ export default function Dashboard() {
                                     )
                                 })}
                             </div>
+                        </div>
+                    </>
+                )}
+
+                {showProfile && (
+                    <>
+                        <div className='absolute inset-0 bg-black/20 z-20' onClick={() => setShowProfile(false)} />
+                        <div className='absolute top-1/2 left-1/2 z-30 max-h-[90vh] w-[760px] max-w-[94vw] -translate-x-1/2 -translate-y-1/2 overflow-auto rounded-2xl border border-[#C9DDC4] bg-[#EFFAF4] shadow-2xl'>
+                            <Profile modal onClose={() => setShowProfile(false)} />
                         </div>
                     </>
                 )}
