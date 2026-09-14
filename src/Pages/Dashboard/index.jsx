@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 import { useWallet } from '@/hooks/useWallet'
 import { usePlayerResources } from '@/hooks/usePlayerResources'
+import { useAvatar, isImageAvatar } from '@/hooks/useAvatar'
 import { listBuildMenu, listMyUnlockedBuildings, buildStructure, buyMissingMaterials, placeNewBuilding, RESOURCES_EVENT } from '@/services/resources'
 import { listDailyLessons } from '@/services/lessons'
 import { DollarSign } from 'lucide-react'
@@ -85,6 +86,8 @@ export default function Dashboard() {
     const { user } = useAuth()
     const { coins, level, pct } = useWallet()
     const resources = usePlayerResources()
+    const { avatar } = useAvatar()
+    const avatarIsImage = isImageAvatar(avatar)
     const [buildMenu, setBuildMenu] = useState([])
     const [unlockedBuildings, setUnlockedBuildings] = useState([])
     const [placingId, setPlacingId] = useState('')
@@ -161,7 +164,9 @@ export default function Dashboard() {
                     className='absolute top-4 left-4 flex items-center gap-2.5 bg-white/95 border border-[#C9DDC4] rounded-xl px-3 py-2 shadow-sm hover:border-[#A9D8AE] hover:bg-white transition-colors text-left'
                     aria-label="View profile"
                 >
-                    <div className='w-9 h-9 rounded-full bg-[#141814] text-white flex items-center justify-center text-xs font-bold'>{initials}</div>
+                    <div className='w-9 h-9 rounded-full bg-[#141814] text-white flex items-center justify-center text-xs font-bold overflow-hidden'>
+                        {avatarIsImage ? <img src={avatar} alt="Profile avatar" className="w-full h-full object-cover rounded-full" /> : avatar ? <span className="text-base leading-none">{avatar}</span> : initials}
+                    </div>
                     <div>
                         <div className='text-sm font-bold leading-none'>{displayName} · Lv {level}</div>
                         <div className='w-28 h-1.5 rounded-full bg-[#EAF2E6] mt-2 overflow-hidden'>

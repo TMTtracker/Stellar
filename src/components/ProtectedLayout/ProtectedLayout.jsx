@@ -2,6 +2,7 @@ import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { BookOpen, Users, Home as House, Zap, Coins, LogOut, Sparkles, User } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { useWallet } from '@/hooks/useWallet'
+import { useAvatar, isImageAvatar } from '@/hooks/useAvatar'
 
 const navItems = [
     { to: '/dashboard', icon: House, label: 'Dashboard' },
@@ -19,6 +20,7 @@ function ProtectedLayout({ children }) {
     const navigate = useNavigate()
     const { user, signOut } = useAuth()
     const { xp, coins } = useWallet()
+    const { avatar } = useAvatar()
 
     const isDashboard = location.pathname.startsWith('/dashboard')
 
@@ -27,6 +29,7 @@ function ProtectedLayout({ children }) {
         const parts = name.split(/[@\s]+/).filter(Boolean)
         return (parts[0]?.[0] || 'S').toUpperCase() + (parts[1]?.[0] || '').toUpperCase()
     })()
+    const avatarIsImage = isImageAvatar(avatar)
 
     async function handleLogout() {
         try {
@@ -56,12 +59,18 @@ function ProtectedLayout({ children }) {
                         ))}
                     </div>
 
-                    {/* Bottom: profile */}
+                    {/* Bottom: profile - synced with profile picture */}
                     <div className='flex flex-col items-center gap-2 w-full border-t border-[#C9DDC4] pt-4 mt-4'>
                         {bottomNavItems.map(({ to, icon: Icon, label }) => (
                             <NavLink key={to} to={to} className='relative group w-full flex justify-center'>
-                                <span className={`w-9 h-9 rounded-lg flex items-center justify-center transition-colors ${location.pathname.startsWith(to) ? 'bg-[#141814] text-white' : 'text-[#6A6F73] hover:bg-[#D2E8CC] hover:text-[#1F2225]'}`} aria-label={label}>
-                                    <Icon size={17} />
+                                <span className={`w-9 h-9 rounded-lg flex items-center justify-center transition-colors overflow-hidden ${location.pathname.startsWith(to) ? 'bg-[#141814] text-white' : 'text-[#6A6F73] hover:bg-[#D2E8CC] hover:text-[#1F2225]'}`} aria-label={label}>
+                                    {avatarIsImage ? (
+                                        <img src={avatar} alt="Profile avatar" className="w-full h-full object-cover rounded-lg" />
+                                    ) : avatar ? (
+                                        <span className="text-base leading-none">{avatar}</span>
+                                    ) : (
+                                        <Icon size={17} />
+                                    )}
                                 </span>
                             </NavLink>
                         ))}
@@ -88,7 +97,20 @@ function ProtectedLayout({ children }) {
                                 <Coins size={16} className='text-[#E8933E]' />
                                 <span className='text-sm font-bold'>{coins.toLocaleString()}</span>
                             </div>
-                            <Link to='/profile' className='w-10 h-10 rounded-full bg-[#141814] text-white flex items-center justify-center font-bold text-xs hover:bg-[#232823] transition-colors' title={user?.email || 'Profile'} aria-label="Profile">{initials}</Link>
+                            <Link
+                                to='/profile'
+                                className={`w-10 h-10 rounded-full bg-[#141814] text-white flex items-center justify-center font-bold text-xs hover:bg-[#232823] transition-colors overflow-hidden ${avatarIsImage ? 'p-0' : ''}`}
+                                title={user?.email || 'Profile'}
+                                aria-label="Profile"
+                            >
+                                {avatarIsImage ? (
+                                    <img src={avatar} alt="Profile avatar" className="w-full h-full object-cover rounded-full" />
+                                ) : avatar ? (
+                                    <span className="text-base leading-none">{avatar}</span>
+                                ) : (
+                                    initials
+                                )}
+                            </Link>
                             <button onClick={handleLogout} aria-label='Log out' title='Log out' className='w-10 h-10 rounded-full bg-white border border-[#C9DDC4] text-[#6A6F73] flex items-center justify-center hover:border-[#D9605B] hover:text-[#D9605B] transition-colors'>
                                 <LogOut size={16} />
                             </button>
