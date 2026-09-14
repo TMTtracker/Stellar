@@ -1,23 +1,16 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Zap, Banknote, Trophy, Star, LogOut, Pencil, Award, BookOpen, Clock, Flame, Library } from 'lucide-react'
+import { Zap, Banknote, Trophy, Star, Pencil, Award, BookOpen, Flame, Library, X, Mail, Lock, User as UserIcon, Image as ImageIcon, Save } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { useWallet } from '@/hooks/useWallet'
 import { getMyProfile, getMyRecentRewards } from '@/services/wallet'
 import { getMyEnrollments } from '@/services/courses'
 import { levelProgress, xpForLevel } from '@/lib/economy'
+import { supabase } from '@/services/supabaseClient'
+import { useAvatar, isImageAvatar } from '@/hooks/useAvatar'
 import './Profile.css'
 
 const AVATAR_OPTIONS = ['🧑‍🚀', '👩‍🎓', '🧑‍💻', '🦊', '🐱', '⭐', '🎓', '🌟', '🔥', '🚀', '🧠', '💎']
-const STORAGE_AVATAR_KEY = 'stellar:avatar'
-
-function getStoredAvatar() {
-  try {
-    return localStorage.getItem(STORAGE_AVATAR_KEY) || null
-  } catch {
-    return null 
-  }
-}
 
 function formatDate(dateStr) {
   if (!dateStr) return '—'
@@ -48,7 +41,7 @@ function kindIcon(kind) {
 }
 
 export default function Profile() {
-  const { user, signOut } = useAuth()
+  const { user } = useAuth()
   const navigate = useNavigate()
   const { xp, coins, current, needed, pct, loading: walletLoading } = useWallet()
 
@@ -56,8 +49,18 @@ export default function Profile() {
   const [rewards, setRewards] = useState([])
   const [enrolledCount, setEnrolledCount] = useState(0)
   const [loading, setLoading] = useState(true)
-  const [avatar, setAvatar] = useState(() => getStoredAvatar() || '🧑‍🚀')
-  const [showAvatarPicker, setShowAvatarPicker] = useState(false)
+  const { avatar, setAvatar } = useAvatar()
+
+  // Edit profile modal state
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [draftAvatar, setDraftAvatar] = useState(avatar)
+  const [draftName, setDraftName] = useState('')
+  const [draftEmail, setDraftEmail] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [editMsg, setEditMsg] = useState(null)
+  const fileInputRef = useRef(null)
 
   const fetchData = useCallback(async () => {
     if (!user) {
@@ -91,22 +94,128 @@ export default function Profile() {
     return () => { cancelled = true }
   }, [fetchData])
 
-  const handleAvatarSelect = (emoji) => {
-    setAvatar(emoji)
-    try {
-      localStorage.setItem(STORAGE_AVATAR_KEY, emoji)
-    } catch {
-      // ignore the errors
+  const openEditModal = useCallback(() => {
+    setDraftAvatar(avatar)
+    setDraftName(profile?.display_name || '')
+    setDraftEmail(user?.email || '')
+    setNewPassword('')
+    setConfirmPassword('')
+    setEditMsg(null)
+    setShowEditModal(true)
+  }, [avatar, profile?.display_name, user?.email])
+
+  const closeEditModal = useCallback(() => {
+    if (saving) return
+    setShowEditModal(false)
+  }, [saving])
+
+  // Close on Escape
+  useEffect(() => {
+    if (!showEditModal) return
+    const onKey = (e) => { if (e.key === 'Escape') closeEditModal() }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [showEditModal, closeEditModal])
+
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (!file.type.startsWith('image/')) {
+      setEditMsg({ type: 'error', text: 'Please select an image file.' })
+      return
     }
-    setShowAvatarPicker(false)
+    if (file.size > 2 * 1024 * 1024) {
+      setEditMsg({ type: 'error', text: 'Image must be smaller than 2 MB.' })
+      return
+    }
+    const reader = new FileReader()
+    reader.onload = () => {
+      const result = reader.result
+      if (typeof result === 'string') setDraftAvatar(result)
+    }
+    reader.onerror = () => setEditMsg({ type: 'error', text: 'Failed to read image.' })
+    reader.readAsDataURL(file)
+    // reset input so same file can be re-selected
+    e.target.value = ''
   }
 
-  const handleLogout = async () => {
+  const handleSave = async () => {
+    setEditMsg(null)
+
+    const trimmedName = draftName.trim()
+    const trimmedEmail = draftEmail.trim()
+
+    if (!trimmedName) {
+      setEditMsg({ type: 'error', text: 'Display name cannot be empty.' })
+      return
+    }
+    if (trimmedEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+      setEditMsg({ type: 'error', text: 'Please enter a valid email address.' })
+      return
+    }
+    if (newPassword || confirmPassword) {
+      if (newPassword.length < 6) {
+        setEditMsg({ type: 'error', text: 'Password must be at least 6 characters.' })
+        return
+      }
+      if (newPassword !== confirmPassword) {
+        setEditMsg({ type: 'error', text: 'Passwords do not match.' })
+        return
+      }
+    }
+
+    setSaving(true)
     try {
-      await signOut()
-      navigate('/')
+      // 1) Avatar / profile pic — stored locally (no avatar column in DB), synced to top-right icon via useAvatar
+      if (draftAvatar !== avatar) {
+        setAvatar(draftAvatar)
+      }
+
+      // 2) Display name — profiles table
+      if (trimmedName !== (profile?.display_name || '')) {
+        const { error } = await supabase
+          .from('profiles')
+          .update({ display_name: trimmedName, updated_at: new Date().toISOString() })
+          .eq('user_id', user.id)
+        if (error) throw error
+        setProfile((prev) => (prev ? { ...prev, display_name: trimmedName } : prev))
+      }
+
+      let emailChanged = false
+      let pwdChanged = false
+
+      // 3) Email — supabase auth
+      if (trimmedEmail !== (user.email || '')) {
+        const { error } = await supabase.auth.updateUser({ email: trimmedEmail })
+        if (error) throw error
+        emailChanged = true
+      }
+
+      // 4) Password — supabase auth
+      if (newPassword) {
+        const { error } = await supabase.auth.updateUser({ password: newPassword })
+        if (error) throw error
+        pwdChanged = true
+      }
+
+      let msg = 'Profile updated successfully.'
+      if (emailChanged && pwdChanged) msg = 'Profile updated. Password changed and email confirmation sent to your new address.'
+      else if (emailChanged) msg = 'Email update requested. Check your new inbox to confirm the change.'
+      else if (pwdChanged) msg = 'Password updated successfully.'
+
+      setEditMsg({ type: 'success', text: msg })
+      // keep modal open so user sees success; auto-close after short delay if no email confirmation pending
+      if (!emailChanged) {
+        setTimeout(() => {
+          setShowEditModal(false)
+          setNewPassword('')
+          setConfirmPassword('')
+        }, 900)
+      }
     } catch (e) {
-      console.error('[profile] sign out failed:', e.message)
+      setEditMsg({ type: 'error', text: e.message || 'Update failed. Please try again.' })
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -145,17 +254,22 @@ export default function Profile() {
     )
   }
 
+  const avatarIsImage = isImageAvatar(avatar)
+  const draftAvatarIsImage = isImageAvatar(draftAvatar)
+
   return (
     <section id="profile" className="profile-section">
       <div className="profile-container">
         {/* Hero */}
         <div className="profile-hero">
           <div className="profile-hero-avatar-wrap">
-            <div className="profile-hero-avatar">{avatar}</div>
+            <div className="profile-hero-avatar">
+              {avatarIsImage ? <img src={avatar} alt="Profile avatar" className="profile-hero-avatar-img" /> : avatar}
+            </div>
             <button
               className="profile-avatar-edit"
-              aria-label="Change avatar"
-              onClick={() => setShowAvatarPicker(v => !v)}
+              aria-label="Edit profile"
+              onClick={openEditModal}
             >
               <Pencil size={12} />
             </button>
@@ -189,27 +303,127 @@ export default function Profile() {
               <Zap size={16} style={{ color: '#A8D79F' }} />
               {xp.toLocaleString()} XP
             </div>
-            <button className="profile-logout-btn" onClick={handleLogout}>
-              <LogOut size={14} />
-              Log out
-            </button>
           </div>
         </div>
 
-        {showAvatarPicker && (
-          <div className="profile-card">
-            <h3>Choose your avatar</h3>
-            <div className="profile-avatar-grid">
-              {AVATAR_OPTIONS.map(emoji => (
-                <button
-                  key={emoji}
-                  className={`profile-avatar-option ${avatar === emoji ? 'active' : ''}`}
-                  onClick={() => handleAvatarSelect(emoji)}
-                  aria-label={`Select avatar ${emoji}`}
-                >
-                  {emoji}
+        {/* Edit profile modal */}
+        {showEditModal && (
+          <div
+            className="profile-edit-overlay"
+            onMouseDown={(e) => { if (e.target === e.currentTarget) closeEditModal() }}
+          >
+            <div className="profile-edit-modal" role="dialog" aria-modal="true" aria-label="Edit profile">
+              <button className="profile-edit-close" onClick={closeEditModal} aria-label="Close edit profile">
+                <X size={18} />
+              </button>
+
+              <h3 className="profile-edit-title">Edit profile</h3>
+              <p className="profile-edit-subtitle">Update your avatar, display name, email and password.</p>
+
+              {/* Avatar / Profile pic */}
+              <div className="profile-edit-section">
+                <label className="profile-edit-label">
+                  <ImageIcon size={14} /> Avatar / Profile picture
+                </label>
+                <div className="profile-edit-avatar-row">
+                  <div className="profile-edit-avatar-preview">
+                    {draftAvatarIsImage ? <img src={draftAvatar} alt="Preview" /> : <span>{draftAvatar}</span>}
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div className="profile-edit-hint">Choose an emoji below or upload a photo. Uploaded images are stored locally on this device.</div>
+                    <button type="button" className="profile-edit-upload-btn" onClick={() => fileInputRef.current?.click()}>
+                      <ImageIcon size={14} /> Upload photo
+                    </button>
+                    <input ref={fileInputRef} type="file" accept="image/*" hidden onChange={handleFileChange} />
+                  </div>
+                </div>
+                <div className="profile-avatar-grid">
+                  {AVATAR_OPTIONS.map(emoji => (
+                    <button
+                      key={emoji}
+                      type="button"
+                      className={`profile-avatar-option ${draftAvatar === emoji ? 'active' : ''}`}
+                      onClick={() => setDraftAvatar(emoji)}
+                      aria-label={`Select avatar ${emoji}`}
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Fields */}
+              <div className="profile-edit-section">
+                <div className="profile-edit-field">
+                  <label><UserIcon size={12} /> Display name</label>
+                  <div className="profile-edit-input-wrap">
+                    <UserIcon size={16} className="profile-edit-input-icon" />
+                    <input
+                      className="profile-edit-input has-icon"
+                      type="text"
+                      placeholder="Stellar Cadet"
+                      value={draftName}
+                      onChange={(e) => setDraftName(e.target.value)}
+                      maxLength={32}
+                    />
+                  </div>
+                </div>
+
+                <div className="profile-edit-field">
+                  <label><Mail size={12} /> Email</label>
+                  <div className="profile-edit-input-wrap">
+                    <Mail size={16} className="profile-edit-input-icon" />
+                    <input
+                      className="profile-edit-input has-icon"
+                      type="email"
+                      placeholder="you@example.com"
+                      value={draftEmail}
+                      onChange={(e) => setDraftEmail(e.target.value)}
+                      autoComplete="email"
+                    />
+                  </div>
+                  <span className="profile-edit-hint">Changing email sends a confirmation to the new address.</span>
+                </div>
+
+                <div className="profile-edit-field">
+                  <label><Lock size={12} /> New password</label>
+                  <div className="profile-edit-input-wrap">
+                    <Lock size={16} className="profile-edit-input-icon" />
+                    <input
+                      className="profile-edit-input has-icon"
+                      type="password"
+                      placeholder="Leave blank to keep current"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      autoComplete="new-password"
+                    />
+                  </div>
+                </div>
+
+                <div className="profile-edit-field">
+                  <label><Lock size={12} /> Confirm new password</label>
+                  <div className="profile-edit-input-wrap">
+                    <Lock size={16} className="profile-edit-input-icon" />
+                    <input
+                      className="profile-edit-input has-icon"
+                      type="password"
+                      placeholder="Confirm new password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      autoComplete="new-password"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {editMsg && <div className={`profile-message ${editMsg.type}`}>{editMsg.text}</div>}
+
+              <div className="profile-edit-actions">
+                <button type="button" className="profile-cancel-btn" onClick={closeEditModal} disabled={saving}>Cancel</button>
+                <button type="button" className="profile-save-btn" onClick={handleSave} disabled={saving}>
+                  {saving ? 'Saving…' : <><Save size={14} /> Save changes</>}
                 </button>
-              ))}
+              </div>
             </div>
           </div>
         )}
@@ -254,11 +468,6 @@ export default function Profile() {
                   <strong>{enrolledCount}</strong>
                   <span>Courses enrolled</span>
                 </div>
-                <div className="profile-stat">
-                  <div className="profile-stat-icon"><Clock size={18} /></div>
-                  <strong>{memberSince}</strong>
-                  <span>Member since</span>
-                </div>
               </div>
             </div>
 
@@ -279,6 +488,10 @@ export default function Profile() {
               <div className="profile-detail-row">
                 <span>Level formula</span>
                 <span style={{ fontSize: 11, color: '#6A6F73' }}>{current}/{needed} XP</span>
+              </div>
+              <div className="profile-detail-row">
+                <span>Member since</span>
+                <span>{memberSince}</span>
               </div>
             </div>
           </div>
