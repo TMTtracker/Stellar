@@ -51,6 +51,26 @@ export async function getTopProfiles(limit = 10) {
     return data ?? []
 }
 
+/** Recently active profiles (for Online Now). */
+export async function getRecentProfiles(limit = 5) {
+    const { data, error } = await supabase
+        .from('profiles')
+        .select('user_id, display_name, updated_at')
+        .order('updated_at', { ascending: false })
+        .limit(limit)
+    if (error) throw error
+    return data ?? []
+}
+
+/** Total number of registered students. */
+export async function getProfilesCount() {
+    const { count, error } = await supabase
+        .from('profiles')
+        .select('user_id', { count: 'exact', head: true })
+    if (error) throw error
+    return count ?? 0
+}
+
 // ---------- Reward history ----------
 
 export async function getMyRecentRewards(limit = 10) {
