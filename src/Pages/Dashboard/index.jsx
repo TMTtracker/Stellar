@@ -35,13 +35,13 @@ const friends = [
 ]
 
 const nav = [
-    { id: 'profile', label: 'Profile', icon: User, to: '/profile' },
     { id: 'courses', label: 'Courses', icon: BookOpen, to: '/courses' },
     { id: 'leaderboard', label: 'Leaderboard', icon: Trophy, to: '/leaderboard' },
     { id: 'shop', label: 'Shop', icon: ShoppingBag, to: '/shop' },
     { id: 'inventory', label: 'Inventory', icon: Backpack, to: null },
     { id: 'your-builds', label: 'Your Builds', icon: Hammer, to: null },
-    { id: 'world-map', label: 'World map', icon: Map, to: '/' }
+    { id: 'world-map', label: 'World map', icon: Map, to: '/' },
+    { id: 'profile', label: 'Profile', icon: User, to: '/profile' }
 ]
 
 // Visual metadata for each building - icon/color/description aren't stored
