@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Search, MessageSquare, Heart, Send, Users, TrendingUp, MoreHorizontal } from 'lucide-react'
+import { Search, Heart, Send, Users, TrendingUp, MoreHorizontal } from 'lucide-react'
 import ProtectedLayout from '@/components/ProtectedLayout/ProtectedLayout'
 import { useAuth } from '@/hooks/useAuth'
 import { useWallet } from '@/hooks/useWallet'
-import { listPosts, createPost, uploadPostImage, getMyLikedPostIds, getAllMyLikedPostIds, toggleLike, listComments, createComment } from '@/services/communityPosts'
+import { listPosts, createPost, uploadPostImage, getMyLikedPostIds, getAllMyLikedPostIds, toggleLike } from '@/services/communityPosts'
 import { getTopProfiles, getRecentProfiles, getProfilesCount } from '@/services/wallet'
 import { WALLET_EVENT } from '@/services/events'
 import { supabase } from '@/services/supabaseClient'
@@ -18,6 +18,7 @@ const ONLINE_COLORS = ['bg-[#141814]', 'bg-[#A9D8AE]', 'bg-[#B9D1E5]', 'bg-[#E89
 
 const initialThreads = [
     {
+        id: 'placeholder-aisha',
         author: 'Aisha R.',
         role: 'Chapter 3 Scholar',
         time: '2h',
@@ -28,6 +29,7 @@ const initialThreads = [
         tag: 'Study Help'
     },
     {
+        id: 'placeholder-deniz',
         author: 'Deniz K.',
         role: 'Level 4 Builder',
         time: '5h',
@@ -38,6 +40,7 @@ const initialThreads = [
         tag: 'Milestone'
     },
     {
+        id: 'placeholder-nafi',
         author: 'Prof. Nafi',
         role: 'Instructor',
         time: '1d',
@@ -68,12 +71,7 @@ export default function Communities() {
     const [onlineError, setOnlineError] = useState('')
     const [likedIds, setLikedIds] = useState(() => new Set())
     const [likingIds, setLikingIds] = useState(() => new Set())
-    const [expandedComments, setExpandedComments] = useState(() => new Set())
-    const [commentsByPost, setCommentsByPost] = useState({}) // postId -> { list: [], loading: bool, error: '' }
-    const [drafts, setDrafts] = useState({}) // postId -> text
-    const [submittingComment, setSubmittingComment] = useState(() => new Set())
-    const [localPlaceholderLikes, setLocalPlaceholderLikes] = useState({}) // title -> { likes, liked }
-    const [localPlaceholderComments, setLocalPlaceholderComments] = useState({}) // title -> [{body}]
+    const [localPlaceholderLikes, setLocalPlaceholderLikes] = useState({}) // id -> { likes, liked }
 
     const displayName = user?.user_metadata?.full_name || user?.email || 'Stellar Cadet'
 
@@ -113,25 +111,6 @@ export default function Communities() {
                         setPosts(prev => prev.some(p => p.id === payload.new.id) ? prev : [payload.new, ...prev])
                     }
                 })
-                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'post_comments' }, (payload) => {
-                    const cid = payload.new?.post_id
-                    if (!cid) return
-                    // Increment count optimistically already handled by trigger; also if comment list open, append
-                    setCommentsByPost(prev => {
-                        const entry = prev[cid]
-                        if (!entry || !expandedComments.has(cid)) return prev
-                        // Avoid duplicate if already have this comment id
-                        if (entry.list?.some(c => c.id === payload.new.id)) return prev
-                        const newComment = {
-                            id: payload.new.id,
-                            body: payload.new.body,
-                            created_at: payload.new.created_at,
-                            user_id: payload.new.user_id,
-                            display_name: 'Someone',
-                        }
-                        return { ...prev, [cid]: { ...entry, list: [...entry.list, newComment] } }
-                    })
-                })
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'post_likes' }, () => {
                     // Likes count already synced via user_posts UPDATE trigger; refresh liked set for current user
                     getAllMyLikedPostIds().then(set => setLikedIds(set)).catch(() => {})
@@ -139,7 +118,7 @@ export default function Communities() {
                 .subscribe()
         } catch (_e) {}
         return () => { if (channel) supabase.removeChannel(channel) }
-    }, [expandedComments])
+    }, [])
 
     const fetchLeaderboard = useCallback(async () => {
         try {
@@ -304,7 +283,7 @@ export default function Communities() {
         const realId = isReal ? thread.id : null
         if (!realId) {
             // Placeholder/local fallback: toggle locally
-            const key = thread.title
+            const key = thread.id ?? thread.title
             setLocalPlaceholderLikes(prev => {
                 const cur = prev[key] ?? { likes: thread.likes, liked: false }
                 const nextLiked = !cur.liked
@@ -341,75 +320,6 @@ export default function Communities() {
             console.error('[like] failed', e.message)
         } finally {
             setLikingIds(prev => { const n = new Set(prev); n.delete(realId); return n })
-        }
-    }
-
-    async function toggleComments(thread) {
-        const id = thread.id
-        const isReal = !!id && posts.some(p => p.id === id)
-        if (!id) return
-        const isOpen = expandedComments.has(id)
-        if (isOpen) {
-            setExpandedComments(prev => { const n = new Set(prev); n.delete(id); return n })
-            return
-        }
-        setExpandedComments(prev => new Set([...prev, id]))
-        if (!isReal) {
-            // placeholder: ensure local comments entry exists
-            return
-        }
-        if (commentsByPost[id]?.list) return // already loaded
-        setCommentsByPost(prev => ({ ...prev, [id]: { list: [], loading: true, error: '' } }))
-        try {
-            const rows = await listComments(id)
-            setCommentsByPost(prev => ({ ...prev, [id]: { list: rows, loading: false, error: '' } }))
-        } catch (e) {
-            setCommentsByPost(prev => ({ ...prev, [id]: { list: [], loading: false, error: e.message ?? 'Failed to load comments' } }))
-        }
-    }
-
-    async function handleSubmitComment(thread) {
-        const id = thread.id
-        if (!id) return
-        const isReal = posts.some(p => p.id === id)
-        const text = (drafts[id] ?? '').trim()
-        if (!text) return
-        if (submittingComment.has(id)) return
-        if (!isReal) {
-            // placeholder local
-            const entry = { id: `local-${Date.now()}`, body: text, created_at: new Date().toISOString(), display_name: displayName }
-            setLocalPlaceholderComments(prev => ({ ...prev, [thread.title]: [...(prev[thread.title] ?? []), entry] }))
-            setDrafts(prev => ({ ...prev, [id]: '' }))
-            // also bump placeholder comment count locally via likes map? Use localPlaceholderLikes comment count alternative
-            // We'll handle display via derived threads
-            return
-        }
-        setSubmittingComment(prev => new Set([...prev, id]))
-        // Optimistic
-        const optimistic = { id: `optimistic-${Date.now()}`, body: text, created_at: new Date().toISOString(), user_id: user?.id, display_name: displayName }
-        setCommentsByPost(prev => {
-            const cur = prev[id] ?? { list: [], loading: false, error: '' }
-            return { ...prev, [id]: { ...cur, list: [...cur.list, optimistic] } }
-        })
-        setPosts(prev => prev.map(p => p.id === id ? { ...p, post_comments: (p.post_comments ?? 0) + 1 } : p))
-        setDrafts(prev => ({ ...prev, [id]: '' }))
-        try {
-            const saved = await createComment(id, text)
-            setCommentsByPost(prev => {
-                const cur = prev[id]
-                if (!cur) return prev
-                return { ...prev, [id]: { ...cur, list: cur.list.map(c => c.id === optimistic.id ? saved : c) } }
-            })
-        } catch (e) {
-            // rollback
-            setCommentsByPost(prev => {
-                const cur = prev[id]
-                if (!cur) return prev
-                return { ...prev, [id]: { ...cur, list: cur.list.filter(c => c.id !== optimistic.id), error: e.message } }
-            })
-            setPosts(prev => prev.map(p => p.id === id ? { ...p, post_comments: Math.max(0, (p.post_comments ?? 1) - 1) } : p))
-        } finally {
-            setSubmittingComment(prev => { const n = new Set(prev); n.delete(id); return n })
         }
     }
 
@@ -475,20 +385,12 @@ export default function Communities() {
                         </div>
                     )}
                     {filteredThreads.map(thread => {
-                        const threadKey = thread.id ?? thread.title
-                        const isReal = !!thread.id && posts.some(p => p.id === thread.id)
-                        const localLike = localPlaceholderLikes[thread.title]
+                        const isReal = !!thread.id && !String(thread.id).startsWith('placeholder') && posts.some(p => p.id === thread.id)
+                        const threadKey = thread.id
+                        const localLike = localPlaceholderLikes[thread.id]
                         const displayLikes = isReal ? thread.likes : (localLike?.likes ?? thread.likes)
                         const isLiked = isReal ? likedIds.has(thread.id) : !!localLike?.liked
                         const isLiking = isReal && likingIds.has(thread.id)
-                        const displayComments = isReal
-                            ? thread.comments
-                            : thread.comments + (localPlaceholderComments[thread.title]?.length ?? 0)
-                        const isExpanded = expandedComments.has(threadKey) || expandedComments.has(thread.id)
-                        const effectiveId = thread.id ?? thread.title
-                        const commentState = isReal ? commentsByPost[thread.id] : null
-                        const placeholderList = !isReal ? (localPlaceholderComments[thread.title] ?? []) : []
-                        const commentList = isReal ? (commentState?.list ?? []) : placeholderList
 
                         return (
                             <article key={threadKey} className='bg-white rounded-2xl border border-[#C9DDC4] p-5'>
@@ -530,77 +432,7 @@ export default function Communities() {
                                     >
                                         <Heart size={16} fill={isLiked ? 'currentColor' : 'none'} /> {displayLikes}
                                     </button>
-                                    <button
-                                        onClick={() => {
-                                            const t = { ...thread, id: effectiveId }
-                                            toggleComments(t)
-                                        }}
-                                        className={`flex items-center gap-1.5 transition-colors ${isExpanded ? 'text-[#A9D8AE] font-semibold' : 'text-[#6A6F73] hover:text-[#A9D8AE]'}`}
-                                    >
-                                        <MessageSquare size={16} /> {displayComments}
-                                    </button>
-                                    <span className='text-[11px] text-[#8BA089]'>Live • real-time</span>
                                 </div>
-
-                                {isExpanded && (
-                                    <div className='mt-4 border-t border-[#EEF6ED] pt-4'>
-                                        {isReal && commentState?.loading && (
-                                            <p className='text-xs text-[#6A6F73] py-2'>Loading comments…</p>
-                                        )}
-                                        {isReal && commentState?.error && (
-                                            <p className='text-xs text-red-500 py-2'>{commentState.error}</p>
-                                        )}
-                                        {!isReal && placeholderList.length === 0 && (
-                                            <p className='text-xs text-[#6A6F73] py-2'>No comments yet — be the first.</p>
-                                        )}
-                                        {isReal && !commentState?.loading && commentList.length === 0 && !commentState?.error && (
-                                            <p className='text-xs text-[#6A6F73] py-2'>No comments yet — be the first.</p>
-                                        )}
-                                        {commentList.length > 0 && (
-                                            <div className='space-y-3 mb-3 max-h-64 overflow-y-auto pr-1'>
-                                                {commentList.map(c => (
-                                                    <div key={c.id} className='flex gap-2.5'>
-                                                        <div className='w-7 h-7 rounded-full bg-[#141814] text-white flex items-center justify-center text-[11px] font-bold shrink-0'>
-                                                            {(c.display_name || 'S').slice(0, 1).toUpperCase()}
-                                                        </div>
-                                                        <div className='bg-[#F3F7F1] rounded-2xl rounded-tl-sm px-3 py-2 flex-1'>
-                                                            <p className='text-xs font-bold'>{c.display_name || 'Stellar Cadet'}</p>
-                                                            <p className='text-xs text-[#1F2225] mt-0.5 leading-relaxed'>{c.body}</p>
-                                                            <p className='text-[11px] text-[#8BA089] mt-1'>{formatRelativeTime(c.created_at)}</p>
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        )}
-                                        <div className='flex items-center gap-2'>
-                                            <input
-                                                type='text'
-                                                value={drafts[effectiveId] ?? ''}
-                                                onChange={e => setDrafts(prev => ({ ...prev, [effectiveId]: e.target.value }))}
-                                                onKeyDown={e => {
-                                                    if (e.key === 'Enter' && !e.shiftKey) {
-                                                        e.preventDefault()
-                                                        const t = { ...thread, id: effectiveId }
-                                                        handleSubmitComment(t)
-                                                    }
-                                                }}
-                                                placeholder='Write a comment…'
-                                                className='flex-1 bg-[#F3F7F1] border border-[#C9DDC4] rounded-full px-4 py-2 text-sm outline-none focus:border-[#A9D8AE]'
-                                            />
-                                            <button
-                                                onClick={() => {
-                                                    const t = { ...thread, id: effectiveId }
-                                                    handleSubmitComment(t)
-                                                }}
-                                                disabled={!(drafts[effectiveId] ?? '').trim() || submittingComment.has(effectiveId)}
-                                                className='w-9 h-9 rounded-full bg-[#A9D8AE] text-white flex items-center justify-center hover:bg-[#98CD9E] disabled:opacity-50 disabled:cursor-not-allowed transition-colors shrink-0'
-                                                aria-label='Post comment'
-                                            >
-                                                <Send size={14} />
-                                            </button>
-                                        </div>
-                                    </div>
-                                )}
                             </article>
                         )
                     })}
