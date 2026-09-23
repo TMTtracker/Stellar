@@ -55,7 +55,6 @@ export default function Profile() {
   const [showEditModal, setShowEditModal] = useState(false)
   const [draftAvatar, setDraftAvatar] = useState(avatar)
   const [draftName, setDraftName] = useState('')
-  const [draftEmail, setDraftEmail] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [saving, setSaving] = useState(false)
@@ -97,12 +96,11 @@ export default function Profile() {
   const openEditModal = useCallback(() => {
     setDraftAvatar(avatar)
     setDraftName(profile?.display_name || '')
-    setDraftEmail(user?.email || '')
     setNewPassword('')
     setConfirmPassword('')
     setEditMsg(null)
     setShowEditModal(true)
-  }, [avatar, profile?.display_name, user?.email])
+  }, [avatar, profile?.display_name])
 
   const closeEditModal = useCallback(() => {
     if (saving) return
@@ -143,14 +141,9 @@ export default function Profile() {
     setEditMsg(null)
 
     const trimmedName = draftName.trim()
-    const trimmedEmail = draftEmail.trim()
 
     if (!trimmedName) {
       setEditMsg({ type: 'error', text: 'Display name cannot be empty.' })
-      return
-    }
-    if (trimmedEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
-      setEditMsg({ type: 'error', text: 'Please enter a valid email address.' })
       return
     }
     if (newPassword || confirmPassword) {
@@ -181,37 +174,23 @@ export default function Profile() {
         setProfile((prev) => (prev ? { ...prev, display_name: trimmedName } : prev))
       }
 
-      let emailChanged = false
       let pwdChanged = false
 
-      // 3) Email — supabase auth
-      if (trimmedEmail !== (user.email || '')) {
-        const { error } = await supabase.auth.updateUser({ email: trimmedEmail })
-        if (error) throw error
-        emailChanged = true
-      }
-
-      // 4) Password — supabase auth
+      // 3) Password — supabase auth
       if (newPassword) {
         const { error } = await supabase.auth.updateUser({ password: newPassword })
         if (error) throw error
         pwdChanged = true
       }
 
-      let msg = 'Profile updated successfully.'
-      if (emailChanged && pwdChanged) msg = 'Profile updated. Password changed and email confirmation sent to your new address.'
-      else if (emailChanged) msg = 'Email update requested. Check your new inbox to confirm the change.'
-      else if (pwdChanged) msg = 'Password updated successfully.'
+      const msg = pwdChanged ? 'Password updated successfully.' : 'Profile updated successfully.'
 
       setEditMsg({ type: 'success', text: msg })
-      // keep modal open so user sees success; auto-close after short delay if no email confirmation pending
-      if (!emailChanged) {
-        setTimeout(() => {
-          setShowEditModal(false)
-          setNewPassword('')
-          setConfirmPassword('')
-        }, 900)
-      }
+      setTimeout(() => {
+        setShowEditModal(false)
+        setNewPassword('')
+        setConfirmPassword('')
+      }, 900)
     } catch (e) {
       setEditMsg({ type: 'error', text: e.message || 'Update failed. Please try again.' })
     } finally {
@@ -247,7 +226,7 @@ export default function Profile() {
       <section id="profile" className="profile-section">
         <div className="profile-container">
           <div className="profile-card" style={{ textAlign: 'center', padding: 40 }}>
-            <p style={{ color: '#6A6F73', fontSize: 13 }}>Loading your Stellar profile…</p>
+            <p style={{ color: 'var(--muted)', fontSize: 13 }}>Loading your Stellar profile…</p>
           </div>
         </div>
       </section>
@@ -299,7 +278,7 @@ export default function Profile() {
               <Banknote size={16} style={{ color: '#E8933E' }} />
               {coins.toLocaleString()} coins
             </div>
-            <div className="profile-coins-badge" style={{ background: 'white' }}>
+            <div className="profile-coins-badge profile-coins-badge--alt">
               <Zap size={16} style={{ color: '#A8D79F' }} />
               {xp.toLocaleString()} XP
             </div>
@@ -376,13 +355,12 @@ export default function Profile() {
                     <input
                       className="profile-edit-input has-icon"
                       type="email"
-                      placeholder="you@example.com"
-                      value={draftEmail}
-                      onChange={(e) => setDraftEmail(e.target.value)}
+                      value={user?.email || ''}
+                      disabled
                       autoComplete="email"
                     />
                   </div>
-                  <span className="profile-edit-hint">Changing email sends a confirmation to the new address.</span>
+                  <span className="profile-edit-hint">Email cannot be changed.</span>
                 </div>
 
                 <div className="profile-edit-field">
@@ -483,11 +461,11 @@ export default function Profile() {
               </div>
               <div className="profile-detail-row">
                 <span>User ID</span>
-                <span style={{ fontSize: 10, color: '#6A6F73', fontFamily: 'monospace' }}>{profile?.user_id?.slice(0, 8)}…</span>
+                <span style={{ fontSize: 10, color: 'var(--muted)', fontFamily: 'monospace' }}>{profile?.user_id?.slice(0, 8)}…</span>
               </div>
               <div className="profile-detail-row">
                 <span>Level formula</span>
-                <span style={{ fontSize: 11, color: '#6A6F73' }}>{current}/{needed} XP</span>
+                <span style={{ fontSize: 11, color: 'var(--muted)' }}>{current}/{needed} XP</span>
               </div>
               <div className="profile-detail-row">
                 <span>Member since</span>
@@ -524,7 +502,7 @@ export default function Profile() {
                         <div className="profile-history-reward">
                           {item.xp !== 0 && <span className="xp">+{item.xp} XP</span>}
                           {item.coins !== 0 && <span className="coins">{item.coins > 0 ? '+' : ''}{item.coins} coins</span>}
-                          {item.xp === 0 && item.coins === 0 && <span style={{ fontSize: 11, color: '#6A6F73' }}>—</span>}
+                          {item.xp === 0 && item.coins === 0 && <span style={{ fontSize: 11, color: 'var(--muted)' }}>—</span>}
                         </div>
                       </div>
                     )

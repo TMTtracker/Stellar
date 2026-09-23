@@ -175,6 +175,10 @@
   color: #1f2225;
 }
 
+.profile-coins-badge--alt {
+  background: white;
+}
+
 .profile-logout-btn {
   display: inline-flex;
   align-items: center;
@@ -744,6 +748,83 @@
 .profile-page .profile-section .profile-container {
   max-width: none;
   margin: 0;
+}
+
+/* Night mode - the shared vars handle most tinted backgrounds/muted text in
+   one place; hardcoded whites and near-black headings need explicit overrides. */
+.dark .profile-section {
+  --muted: #8FA893;
+  --accent-bg: #1B211C;
+  --border: #262E28;
+  background: #0E1210;
+}
+
+.dark .profile-hero,
+.dark .profile-card,
+.dark .profile-guest,
+.dark .profile-edit-modal {
+  background: #14171A;
+}
+
+.dark .profile-hero-info h2,
+.dark .profile-card h3,
+.dark .profile-stat strong,
+.dark .profile-edit-title,
+.dark .profile-history-info strong,
+.dark .profile-guest h3,
+.dark .profile-detail-row span:last-child,
+.dark .profile-edit-input,
+.dark .profile-coins-badge {
+  color: #F2F5F0;
+}
+
+.dark .profile-hero-avatar,
+.dark .profile-edit-avatar-preview,
+.dark .profile-avatar-edit {
+  border-color: #14171A;
+}
+
+.dark .profile-stat-icon,
+.dark .profile-history-icon {
+  background: #0E1210;
+}
+
+.dark .profile-coins-badge--alt {
+  background: #0E1210;
+}
+
+.dark .profile-logout-btn,
+.dark .profile-edit-upload-btn,
+.dark .profile-edit-close,
+.dark .profile-edit-input,
+.dark .profile-cancel-btn {
+  background: #0E1210;
+}
+
+.dark .profile-edit-input:disabled {
+  background: #1B211C;
+}
+
+.dark .profile-message.success {
+  background: rgba(168, 215, 159, 0.12);
+  color: #9BE3A0;
+  border-color: #262E28;
+}
+
+.dark .profile-message.error {
+  background: rgba(224, 82, 82, 0.14);
+  color: #F29B9B;
+  border-color: rgba(224, 82, 82, 0.35);
+}
+
+.dark .profile-logout-btn:hover {
+  background: rgba(224, 82, 82, 0.14);
+}
+
+.dark .profile-edit-close:hover,
+.dark .profile-edit-upload-btn:hover,
+.dark .profile-cancel-btn:hover {
+  color: #F2F5F0;
 }
 
 /* Responsive */

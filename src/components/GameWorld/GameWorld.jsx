@@ -36,7 +36,7 @@ function toWorldPosition(b) {
     ]
 }
 
-function GameWorld() {
+function GameWorld({ dark = false }) {
     const [buildings, setBuildings] = useState([])
     const [selectedId, setSelectedId] = useState(null)
     const [busy, setBusy] = useState(false)
@@ -90,7 +90,7 @@ function GameWorld() {
     }
 
     return (
-        <div className='w-full h-full bg-[#effaf4]'>
+        <div className={`w-full h-full ${dark ? 'bg-[#0A0D1C]' : 'bg-[#effaf4]'}`}>
             <Canvas
                 shadows
                 orthographic
@@ -105,9 +105,12 @@ function GameWorld() {
                 }}
                 onPointerMissed={() => setSelectedId(null)}
             >
-                <color attach='background' args={['#effaf4']} />
+                {/* Night mode swaps only the lighting rig + background/fog to a
+                    dim, cool moonlit look - no model or material changes. */}
+                <color attach='background' args={[dark ? '#0A0D1C' : '#effaf4']} />
+                {dark && <fog attach='fog' args={['#0A0D1C', 25, 95]} />}
 
-                <ambientLight intensity={1.8} />
+                <ambientLight intensity={dark ? 0.32 : 1.8} color={dark ? '#4A5AA8' : '#ffffff'} />
                 <directionalLight
                     ref={(l) => {
                         if (l) {
@@ -123,9 +126,14 @@ function GameWorld() {
                             l.shadow.bias = 0.0005
                         }
                     }}
-                    position={[10, 20, 10]}
-                    intensity={1.8}
+                    position={dark ? [-14, 24, 8] : [10, 20, 10]}
+                    intensity={dark ? 0.85 : 1.8}
+                    color={dark ? '#AEBBFF' : '#ffffff'}
                 />
+                {/* Faint warm rim/fill so the night scene isn't purely cold blue -
+                    mirrors the lantern-glow feel of the reference without adding
+                    a light source tied to any specific model. */}
+                {dark && <hemisphereLight args={['#3A4A8A', '#0A0D1C', 0.25]} />}
 
                 {/* Green ground */}
                 <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.01, 0]} receiveShadow>
@@ -196,12 +204,12 @@ function GameWorld() {
             {/* Selected-building toolbar - front/back = -Z/+Z, left/right = -X/+X,
                 each move/rotate snaps by exactly one grid step. */}
             {selected && (
-                <div className='absolute bottom-24 left-1/2 -translate-x-1/2 flex items-center gap-1.5 bg-white/95 border border-[#C9DDC4] rounded-2xl px-2 py-1.5 shadow-sm z-30'>
+                <div className='absolute bottom-24 left-1/2 -translate-x-1/2 flex items-center gap-1.5 bg-white/95 dark:bg-[#14171A]/95 border border-[#C9DDC4] dark:border-[#262E28] rounded-2xl px-2 py-1.5 shadow-sm z-30'>
                     <button
                         aria-label='Move front'
                         disabled={busy}
                         onClick={() => handleMove(0, -1)}
-                        className='w-9 h-9 flex items-center justify-center rounded-lg text-[#6A6F73] hover:bg-[#DDF0E1] hover:text-[#1F2225] disabled:opacity-50'
+                        className='w-9 h-9 flex items-center justify-center rounded-lg text-[#6A6F73] dark:text-[#8FA893] hover:bg-[#DDF0E1] dark:hover:bg-[#1E2B20] hover:text-[#1F2225] dark:hover:text-[#EAF3E7] disabled:opacity-50'
                     >
                         <ArrowUp size={17} />
                     </button>
@@ -209,7 +217,7 @@ function GameWorld() {
                         aria-label='Move back'
                         disabled={busy}
                         onClick={() => handleMove(0, 1)}
-                        className='w-9 h-9 flex items-center justify-center rounded-lg text-[#6A6F73] hover:bg-[#DDF0E1] hover:text-[#1F2225] disabled:opacity-50'
+                        className='w-9 h-9 flex items-center justify-center rounded-lg text-[#6A6F73] dark:text-[#8FA893] hover:bg-[#DDF0E1] dark:hover:bg-[#1E2B20] hover:text-[#1F2225] dark:hover:text-[#EAF3E7] disabled:opacity-50'
                     >
                         <ArrowDown size={17} />
                     </button>
@@ -217,7 +225,7 @@ function GameWorld() {
                         aria-label='Move left'
                         disabled={busy}
                         onClick={() => handleMove(-1, 0)}
-                        className='w-9 h-9 flex items-center justify-center rounded-lg text-[#6A6F73] hover:bg-[#DDF0E1] hover:text-[#1F2225] disabled:opacity-50'
+                        className='w-9 h-9 flex items-center justify-center rounded-lg text-[#6A6F73] dark:text-[#8FA893] hover:bg-[#DDF0E1] dark:hover:bg-[#1E2B20] hover:text-[#1F2225] dark:hover:text-[#EAF3E7] disabled:opacity-50'
                     >
                         <ArrowLeft size={17} />
                     </button>
@@ -225,25 +233,25 @@ function GameWorld() {
                         aria-label='Move right'
                         disabled={busy}
                         onClick={() => handleMove(1, 0)}
-                        className='w-9 h-9 flex items-center justify-center rounded-lg text-[#6A6F73] hover:bg-[#DDF0E1] hover:text-[#1F2225] disabled:opacity-50'
+                        className='w-9 h-9 flex items-center justify-center rounded-lg text-[#6A6F73] dark:text-[#8FA893] hover:bg-[#DDF0E1] dark:hover:bg-[#1E2B20] hover:text-[#1F2225] dark:hover:text-[#EAF3E7] disabled:opacity-50'
                     >
                         <ArrowRight size={17} />
                     </button>
-                    <span className='w-px h-6 bg-[#C9DDC4] mx-0.5' />
+                    <span className='w-px h-6 bg-[#C9DDC4] dark:bg-[#262E28] mx-0.5' />
                     <button
                         aria-label='Rotate 90 degrees'
                         disabled={busy}
                         onClick={handleRotate}
-                        className='w-9 h-9 flex items-center justify-center rounded-lg text-[#6A6F73] hover:bg-[#DDF0E1] hover:text-[#1F2225] disabled:opacity-50'
+                        className='w-9 h-9 flex items-center justify-center rounded-lg text-[#6A6F73] dark:text-[#8FA893] hover:bg-[#DDF0E1] dark:hover:bg-[#1E2B20] hover:text-[#1F2225] dark:hover:text-[#EAF3E7] disabled:opacity-50'
                     >
                         <RotateCw size={17} />
                     </button>
-                    <span className='w-px h-6 bg-[#C9DDC4] mx-0.5' />
+                    <span className='w-px h-6 bg-[#C9DDC4] dark:bg-[#262E28] mx-0.5' />
                     <button
                         aria-label='Remove building'
                         disabled={busy}
                         onClick={handleRemove}
-                        className='w-9 h-9 flex items-center justify-center rounded-lg text-[#C4634F] hover:bg-[#FBF1ED] disabled:opacity-50'
+                        className='w-9 h-9 flex items-center justify-center rounded-lg text-[#C4634F] hover:bg-[#FBF1ED] dark:hover:bg-[#2A1716] disabled:opacity-50'
                     >
                         <Trash2 size={17} />
                     </button>

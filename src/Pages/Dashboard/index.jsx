@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react'
-import { Backpack, Trophy, Map, ShoppingBag, BookOpen, Bell, Settings, Flame, Zap, Banknote, Building2, Building, Warehouse, Lock, BrickWall, TreeDeciduous, Gem, Mountain, Pickaxe, Beaker, Lightbulb, Feather, Clock, X, Hammer, Check, User } from 'lucide-react'
+import { Backpack, Trophy, Map, ShoppingBag, BookOpen, Bell, Settings, Flame, Zap, Banknote, Building2, Building, Warehouse, Lock, BrickWall, TreeDeciduous, Gem, Mountain, Pickaxe, Beaker, Lightbulb, Feather, Clock, X, Hammer, Check, User, Moon, Sun, LogOut } from 'lucide-react'
 import ProtectedLayout from '@/components/ProtectedLayout/ProtectedLayout'
 import GameWorld from '@/components/GameWorld/GameWorld'
-import Profile from '@/components/Profile/Profile'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 import { useWallet } from '@/hooks/useWallet'
 import { usePlayerResources } from '@/hooks/usePlayerResources'
 import { useAvatar, isImageAvatar } from '@/hooks/useAvatar'
+import { useDarkMode } from '@/hooks/useDarkMode'
 import { listBuildMenu, listMyUnlockedBuildings, buildStructure, buyMissingMaterials, placeNewBuilding, RESOURCES_EVENT } from '@/services/resources'
 import { listDailyLessons } from '@/services/lessons'
 import { DollarSign } from 'lucide-react'
@@ -52,10 +52,10 @@ const nav = [
 const BUILD_DISPLAY = {
     data_structures_hall: { icon: Building2, iconColor: 'text-[#A9D8AE]', desc: 'Unlocks arrays through trees content.' },
     algorithms_tower: { icon: Building, iconColor: 'text-[#141814]', desc: 'Unlocks sorting and graph content.' },
-    interview_prep_dojo: { icon: Warehouse, iconColor: 'text-[#6A6F73]', desc: 'Unlocks mock interview mode.' },
-    coding_coliseum: { icon: Lock, iconColor: 'text-[#6A6F73]', desc: 'Reach level 20 to unlock this building.' }
+    interview_prep_dojo: { icon: Warehouse, iconColor: 'text-[#6A6F73] dark:text-[#8FA893]', desc: 'Unlocks mock interview mode.' },
+    coding_coliseum: { icon: Lock, iconColor: 'text-[#6A6F73] dark:text-[#8FA893]', desc: 'Reach level 20 to unlock this building.' }
 }
-const DEFAULT_BUILD_DISPLAY = { icon: Building2, iconColor: 'text-[#6A6F73]', desc: '' }
+const DEFAULT_BUILD_DISPLAY = { icon: Building2, iconColor: 'text-[#6A6F73] dark:text-[#8FA893]', desc: '' }
 
 // Maps a player_resources column to its build_menu "_required" column and
 // display icon/label - drives both the Inventory panel and each build
@@ -83,13 +83,13 @@ const consumables = [
 export default function Dashboard() {
     const navigate = useNavigate()
     const [showInventory, setShowInventory] = useState(false)
-    const [showProfile, setShowProfile] = useState(false)
     const [showYourBuilds, setShowYourBuilds] = useState(false)
     const [settingsOpen, setSettingsOpen] = useState(false)
-    const { user } = useAuth()
+    const { user, signOut } = useAuth()
     const { coins, level, pct } = useWallet()
     const resources = usePlayerResources()
     const { avatar } = useAvatar()
+    const { dark, toggle: toggleDarkMode } = useDarkMode()
     const avatarIsImage = isImageAvatar(avatar)
     const [buildMenu, setBuildMenu] = useState([])
     const [unlockedBuildings, setUnlockedBuildings] = useState([])
@@ -153,18 +153,27 @@ export default function Dashboard() {
         }
     }
 
+    async function handleLogout() {
+        try {
+            await signOut()
+            navigate('/')
+        } catch (e) {
+            console.error('[auth] sign out failed:', e.message)
+        }
+    }
+
     return (
         <ProtectedLayout>
             <div className='relative w-full h-screen overflow-hidden'>
                 {/* 3D world viewport */}
                 <div className='absolute inset-0'>
-                    <GameWorld />
+                    <GameWorld dark={dark} />
                 </div>
 
                 {/* Top-left: profile chip + streak — links to /profile */}
                 <button
                     onClick={() => navigate('/profile')}
-                    className='absolute top-4 left-4 flex items-center gap-2.5 bg-white/95 border border-[#C9DDC4] rounded-xl px-3 py-2 shadow-sm hover:border-[#A9D8AE] hover:bg-white transition-colors text-left'
+                    className='absolute top-4 left-4 flex items-center gap-2.5 bg-white/95 dark:bg-[#14171A]/95 border border-[#C9DDC4] dark:border-[#262E28] rounded-xl px-3 py-2 shadow-sm hover:border-[#A9D8AE] hover:bg-white dark:hover:bg-[#1B1F22] transition-colors text-left'
                     aria-label="View profile"
                 >
                     <div className='w-9 h-9 rounded-full bg-[#141814] text-white flex items-center justify-center text-xs font-bold overflow-hidden'>
@@ -172,26 +181,26 @@ export default function Dashboard() {
                     </div>
                     <div>
                         <div className='text-sm font-bold leading-none'>{displayName} · Lv {level}</div>
-                        <div className='w-28 h-1.5 rounded-full bg-[#EAF2E6] mt-2 overflow-hidden'>
+                        <div className='w-28 h-1.5 rounded-full bg-[#EAF2E6] dark:bg-[#232A24] mt-2 overflow-hidden'>
                             <div className='h-full bg-[#A9D8AE] rounded-full' style={{ width: `${pct}%` }} />
                         </div>
                     </div>
-                    <div className='flex items-center gap-1.5 text-sm font-bold text-[#E8933E] border-l border-[#C9DDC4] pl-2.5 ml-0.5'>
+                    <div className='flex items-center gap-1.5 text-sm font-bold text-[#E8933E] border-l border-[#C9DDC4] dark:border-[#262E28] pl-2.5 ml-0.5'>
                         <Flame size={15} fill='currentColor' />
                         {streak} Days Streak
                     </div>
                 </button>
 
                 {/* Top-left: Daily lessons panel */}
-                <div className='absolute top-[84px] left-4 w-[280px] bg-white/95 border border-[#C9DDC4] rounded-xl px-4 py-4 shadow-sm'>
-                    <p className='text-[11px] font-bold tracking-wider text-[#6A6F73] mb-3'>DAILY LESSONS</p>
-                    {dailyLoading && <p className='text-[12px] text-[#6A6F73] py-3'>Loading lessons…</p>}
+                <div className='absolute top-[84px] left-4 w-[280px] bg-white/95 dark:bg-[#14171A]/95 border border-[#C9DDC4] dark:border-[#262E28] rounded-xl px-4 py-4 shadow-sm'>
+                    <p className='text-[11px] font-bold tracking-wider text-[#6A6F73] dark:text-[#8FA893] mb-3'>DAILY LESSONS</p>
+                    {dailyLoading && <p className='text-[12px] text-[#6A6F73] dark:text-[#8FA893] py-3'>Loading lessons…</p>}
                     {!dailyLoading && dailyError && <p className='text-[12px] text-[#D9605B] py-3'>{dailyError}</p>}
                     {!dailyLoading && !dailyError && dailyLessons.length === 0 && (
-                        <p className='text-[12px] text-[#6A6F73] py-3'>No lessons yet — check back soon.</p>
+                        <p className='text-[12px] text-[#6A6F73] dark:text-[#8FA893] py-3'>No lessons yet — check back soon.</p>
                     )}
                     {!dailyLoading && !dailyError && dailyLessons.length > 0 && (
-                        <ul className='divide-y divide-[#C9DDC4]'>
+                        <ul className='divide-y divide-[#C9DDC4] dark:divide-[#262E28]'>
                             {dailyLessons.map(lesson => {
                                 const MaterialIcon = materialIcon(lesson.material_name)
                                 return (
@@ -202,8 +211,8 @@ export default function Dashboard() {
                                         >
                                             <div className='flex items-center justify-between mb-1'>
                                                 <div className='min-w-0 pr-2'>
-                                                    <p className='text-[13px] font-medium text-[#1F2225] leading-tight truncate'>{lesson.title}</p>
-                                                    <p className='text-[12px] text-[#6A6F73] mt-1'>
+                                                    <p className='text-[13px] font-medium text-[#1F2225] dark:text-[#F2F5F0] leading-tight truncate'>{lesson.title}</p>
+                                                    <p className='text-[12px] text-[#6A6F73] dark:text-[#8FA893] mt-1'>
                                                         {lesson.duration_min} min · {(lesson.difficulty ?? '').toLowerCase()}
                                                     </p>
                                                     {lesson.courses?.title && (
@@ -220,7 +229,7 @@ export default function Dashboard() {
                                                         {lesson.coins_reward}
                                                     </span>
                                                     <span className='flex items-center gap-1'>
-                                                        <MaterialIcon size={14} className='text-[#6A6F73]' />
+                                                        <MaterialIcon size={14} className='text-[#6A6F73] dark:text-[#8FA893]' />
                                                         {lesson.material_qty}
                                                     </span>
                                                 </div>
@@ -235,7 +244,7 @@ export default function Dashboard() {
                     <button className='w-full' onClick={() => navigate('/courses')}>
                         <p className='text-xs font-semibold tracking-wide text-center rounded-full text-white mt-3 p-3 border-t bg-[#8dc26d]'>View all lessons</p>
                     </button>
-                    <p className='text-[11px] text-[#6A6F73] mt-3 pt-3 border-t border-[#C9DDC4]'>Harder lessons drop rarer build materials, not just more XP.</p>
+                    <p className='text-[11px] text-[#6A6F73] dark:text-[#8FA893] mt-3 pt-3 border-t border-[#C9DDC4] dark:border-[#262E28]'>Harder lessons drop rarer build materials, not just more XP.</p>
                 </div>
 
                 {/* Top-right: friends + inventory + controls */}
@@ -247,34 +256,44 @@ export default function Dashboard() {
                                 {f.initials}
                             </div>
                         ))}
-                        <div className='w-6.5 h-6.5 rounded-full bg-white border-2 border-white text-[#6A6F73] flex items-center justify-center text-[10px] font-bold -ml-2 shadow-sm'>+3</div>
+                        <div className='w-6.5 h-6.5 rounded-full bg-white border-2 border-white text-[#6A6F73] dark:text-[#8FA893] flex items-center justify-center text-[10px] font-bold -ml-2 shadow-sm'>+3</div>
                     </div>
 
                     {/* Inventory — replaces the money indicator */}
-                    <button aria-label='Inventory' onClick={() => navigate('/shop')} className='relative flex items-center gap-2 bg-white/95 border border-[#C9DDC4] rounded-xl px-3 py-1.5 hover:border-[#A9D8AE] transition-colors'>
+                    <button aria-label='Inventory' onClick={() => navigate('/shop')} className='relative flex items-center gap-2 bg-white/95 dark:bg-[#14171A]/95 border border-[#C9DDC4] dark:border-[#262E28] rounded-xl px-3 py-1.5 hover:border-[#A9D8AE] transition-colors'>
                         <DollarSign size={16} className='text-[#A9D8AE]' />
                         <span className='text-sm font-bold'>{coins.toLocaleString()}</span>
                     </button>
-                    <button aria-label='Inventory' onClick={() => setShowInventory(true)} className='relative flex items-center gap-2 bg-white/95 border border-[#C9DDC4] rounded-xl px-3 py-1.5 hover:border-[#A9D8AE] transition-colors'>
+                    <button aria-label='Inventory' onClick={() => setShowInventory(true)} className='relative flex items-center gap-2 bg-white/95 dark:bg-[#14171A]/95 border border-[#C9DDC4] dark:border-[#262E28] rounded-xl px-3 py-1.5 hover:border-[#A9D8AE] transition-colors'>
                         <Backpack size={16} className='text-[#A9D8AE]' />
                         <span className='text-sm font-bold'>{totalMaterialCount}</span>
                         <span className='absolute -top-1.5 -right-1.5 w-4 h-4 bg-[#A9D8AE] text-white text-[10px] font-bold rounded-full flex items-center justify-center'>3</span>
                     </button>
-                    <button aria-label='Notifications' className='w-9 h-9 bg-white/95 border border-[#C9DDC4] rounded-xl flex items-center justify-center text-[#6A6F73] hover:border-[#A9D8AE] hover:text-[#A9D8AE] transition-colors'>
+                    <button aria-label='Notifications' className='w-9 h-9 bg-white/95 dark:bg-[#14171A]/95 border border-[#C9DDC4] dark:border-[#262E28] rounded-xl flex items-center justify-center text-[#6A6F73] dark:text-[#8FA893] hover:border-[#A9D8AE] hover:text-[#A9D8AE] transition-colors'>
                         <Bell size={16} />
                     </button>
                     <div className='relative'>
-                        <button aria-label='Settings' aria-expanded={settingsOpen} onClick={() => setSettingsOpen(open => !open)} className='w-9 h-9 bg-white/95 border border-[#C9DDC4] rounded-xl flex items-center justify-center text-[#6A6F73] hover:border-[#A9D8AE] hover:text-[#A9D8AE] transition-colors'>
+                        <button aria-label='Settings' aria-expanded={settingsOpen} onClick={() => setSettingsOpen(open => !open)} className='w-9 h-9 bg-white/95 dark:bg-[#14171A]/95 border border-[#C9DDC4] dark:border-[#262E28] rounded-xl flex items-center justify-center text-[#6A6F73] dark:text-[#8FA893] hover:border-[#A9D8AE] hover:text-[#A9D8AE] transition-colors'>
                             <Settings size={16} />
                         </button>
                         {settingsOpen && (
-                            <div className='absolute right-0 top-11 z-20 w-52 rounded-2xl border border-[#C9DDC4] bg-white p-2 text-[#1F2225] shadow-xl'>
-                                <button onClick={() => { setSettingsOpen(false); setShowProfile(true) }} className='flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold hover:bg-[#EFFAF4]'>
-                                    <UserRound size={16} /> Profile settings
+                            <div className='absolute right-0 top-11 z-20 w-52 rounded-2xl border border-[#C9DDC4] dark:border-[#262E28] bg-white dark:bg-[#14171A] p-2 text-[#1F2225] dark:text-[#F2F5F0] shadow-xl'>
+                                <button
+                                    onClick={toggleDarkMode}
+                                    aria-pressed={dark}
+                                    className='flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold hover:bg-[#EFFAF4] dark:hover:bg-[#1E2B20]'
+                                >
+                                    {dark ? <Moon size={16} /> : <Sun size={16} />}
+                                    Night mode
+                                    <span className={`ml-auto flex h-5 w-9 items-center rounded-full p-0.5 transition-colors ${dark ? 'bg-[#A9D8AE]' : 'bg-[#E4EBE2]'}`}>
+                                        <span className={`h-4 w-4 rounded-full bg-white shadow transition-transform ${dark ? 'translate-x-4' : 'translate-x-0'}`} />
+                                    </span>
                                 </button>
-                                <button disabled title='Night mode is coming soon' className='flex w-full cursor-not-allowed items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-[#A0A6A1]'>
-                                    <Moon size={16} /> Night mode
-                                    <span className='ml-auto text-[10px] font-bold uppercase tracking-wide'>Soon</span>
+                                <button
+                                    onClick={() => { setSettingsOpen(false); handleLogout() }}
+                                    className='flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-[#D9605B] hover:bg-[#FBF1ED] dark:hover:bg-[#2A1716]'
+                                >
+                                    <LogOut size={16} /> Logout
                                 </button>
                             </div>
                         )}
@@ -282,8 +301,8 @@ export default function Dashboard() {
                 </div>
 
                 {/* Top-center: active quest banner */}
-                <div className='absolute top-4 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-white/95 border border-[#A9D8AE] rounded-xl px-3.5 py-2 shadow-sm'>
-                    <span className='w-6 h-6 rounded-md bg-[#DDF0E1] text-[#A9D8AE] flex items-center justify-center'>
+                <div className='absolute top-4 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-white/95 dark:bg-[#14171A]/95 border border-[#A9D8AE] rounded-xl px-3.5 py-2 shadow-sm'>
+                    <span className='w-6 h-6 rounded-md bg-[#DDF0E1] dark:bg-[#1E2B20] text-[#A9D8AE] flex items-center justify-center'>
                         <Building2 size={14} />
                     </span>
                     <span className='text-sm font-bold flex items-center gap-2'>
@@ -295,12 +314,12 @@ export default function Dashboard() {
                 </div>
 
                 {/* Bottom-left: minimap */}
-                <div className='absolute bottom-4 left-4  bg-white/95 border border-[#C9DDC4] rounded-xl flex flex-col items-center justify-center gap-1 shadow-sm hover:border-[#A9D8AE] transition-colors'>
+                <div className='absolute bottom-4 left-4  bg-white/95 dark:bg-[#14171A]/95 border border-[#C9DDC4] dark:border-[#262E28] rounded-xl flex flex-col items-center justify-center gap-1 shadow-sm hover:border-[#A9D8AE] transition-colors'>
                     <img src='public/assets/minimap.png' className='h-[25vh]' alt='' />
                 </div>
 
                 {/* Bottom nav bar */}
-                <div className='absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-1 bg-white/95 border border-[#C9DDC4] rounded-2xl px-2 py-1.5 shadow-sm'>
+                <div className='absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-1 bg-white/95 dark:bg-[#14171A]/95 border border-[#C9DDC4] dark:border-[#262E28] rounded-2xl px-2 py-1.5 shadow-sm'>
                     {nav.map(({ id, label, icon: Icon, to }) => (
                         <button
                             key={id}
@@ -309,10 +328,10 @@ export default function Dashboard() {
                                 else if (id === 'inventory') setShowInventory(true)
                                 else if (id === 'your-builds') setShowYourBuilds(true)
                             }}
-                            className='flex flex-col items-center gap-0.5 px-2.5 py-1.5 rounded-lg hover:bg-[#DDF0E1] transition-colors'
+                            className='flex flex-col items-center gap-0.5 px-2.5 py-1.5 rounded-lg hover:bg-[#DDF0E1] dark:hover:bg-[#1E2B20] transition-colors'
                         >
-                            <Icon size={18} className='text-[#6A6F73] hover:text-[#1F2225]' />
-                            <span className='text-[11px] font-medium text-[#6A6F73]'>{label}</span>
+                            <Icon size={18} className='text-[#6A6F73] dark:text-[#8FA893] hover:text-[#1F2225] dark:hover:text-[#EAF3E7]' />
+                            <span className='text-[11px] font-medium text-[#6A6F73] dark:text-[#8FA893]'>{label}</span>
                         </button>
                     ))}
                 </div>
@@ -321,53 +340,44 @@ export default function Dashboard() {
                 {showInventory && (
                     <>
                         <div className='absolute inset-0 bg-black/20' onClick={() => setShowInventory(false)} />
-                        <div className='absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[520px] max-w-[92vw] max-h-[90vh] overflow-auto bg-white border border-[#C9DDC4] rounded-2xl p-5 shadow-2xl z-10'>
+                        <div className='absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[520px] max-w-[92vw] max-h-[90vh] overflow-auto bg-white dark:bg-[#14171A] border border-[#C9DDC4] dark:border-[#262E28] rounded-2xl p-5 shadow-2xl z-10'>
                             <div className='flex items-center justify-between mb-1'>
                                 <span className='text-base font-medium'>Inventory</span>
-                                <button onClick={() => setShowInventory(false)} aria-label='Close inventory' className='text-[#6A6F73] hover:text-[#1F2225]'>
+                                <button onClick={() => setShowInventory(false)} aria-label='Close inventory' className='text-[#6A6F73] dark:text-[#8FA893] hover:text-[#1F2225] dark:hover:text-[#EAF3E7]'>
                                     <X size={16} />
                                 </button>
                             </div>
-                            <p className='text-[12px] text-[#6A6F73] mb-3'>{coins.toLocaleString()} coins</p>
+                            <p className='text-[12px] text-[#6A6F73] dark:text-[#8FA893] mb-3'>{coins.toLocaleString()} coins</p>
 
-                            <p className='text-[11px] font-bold tracking-wider text-[#6A6F73] mb-2'>BUILD MATERIALS</p>
+                            <p className='text-[11px] font-bold tracking-wider text-[#6A6F73] dark:text-[#8FA893] mb-2'>BUILD MATERIALS</p>
                             <div className='grid grid-cols-4 gap-2 mb-4'>
                                 {MATERIAL_FIELDS.map(f => (
-                                    <div key={f.key} className='flex flex-col items-center justify-center rounded-xl bg-[#EEF6ED] py-2.5'>
-                                        <f.icon size={20} className='text-[#6A6F73]' />
+                                    <div key={f.key} className='flex flex-col items-center justify-center rounded-xl bg-[#EEF6ED] dark:bg-[#1B211C] py-2.5'>
+                                        <f.icon size={20} className='text-[#6A6F73] dark:text-[#8FA893]' />
                                         <span className='text-[12px] font-medium mt-1'>{resources[f.key] ?? 0}</span>
-                                        <span className='text-[10px] text-[#6A6F73]'>{f.label}</span>
+                                        <span className='text-[10px] text-[#6A6F73] dark:text-[#8FA893]'>{f.label}</span>
                                     </div>
                                 ))}
                             </div>
 
-                            <p className='text-[11px] font-bold tracking-wider text-[#6A6F73] mb-2'>CONSUMABLES</p>
+                            <p className='text-[11px] font-bold tracking-wider text-[#6A6F73] dark:text-[#8FA893] mb-2'>CONSUMABLES</p>
                             <div className='space-y-2'>
                                 {consumables.map(item => {
                                     const ItemIcon = item.icon
                                     return (
-                                        <div key={item.name} className='flex items-center justify-between rounded-xl bg-[#EEF6ED] px-3 py-2'>
+                                        <div key={item.name} className='flex items-center justify-between rounded-xl bg-[#EEF6ED] dark:bg-[#1B211C] px-3 py-2'>
                                             <div className='flex items-center gap-2 text-[13px]'>
                                                 <ItemIcon size={17} className={item.iconColor} />
                                                 {item.name}
                                             </div>
-                                            <div className='flex items-center gap-2 text-[12px] text-[#6A6F73]'>
+                                            <div className='flex items-center gap-2 text-[12px] text-[#6A6F73] dark:text-[#8FA893]'>
                                                 <span>x{item.count}</span>
-                                                <button className='rounded-full border border-[#C9DDC4] px-2.5 py-1 text-[11px] hover:border-[#A9D8AE] hover:text-[#1F2225]'>Use</button>
+                                                <button className='rounded-full border border-[#C9DDC4] dark:border-[#262E28] px-2.5 py-1 text-[11px] hover:border-[#A9D8AE] hover:text-[#1F2225] dark:hover:text-[#EAF3E7]'>Use</button>
                                             </div>
                                         </div>
                                     )
                                 })}
                             </div>
-                        </div>
-                    </>
-                )}
-
-                {showProfile && (
-                    <>
-                        <div className='absolute inset-0 bg-black/20 z-20' onClick={() => setShowProfile(false)} />
-                        <div className='absolute top-1/2 left-1/2 z-30 max-h-[90vh] w-[760px] max-w-[94vw] -translate-x-1/2 -translate-y-1/2 overflow-auto rounded-2xl border border-[#C9DDC4] bg-[#EFFAF4] shadow-2xl'>
-                            <Profile modal onClose={() => setShowProfile(false)} />
                         </div>
                     </>
                 )}
@@ -379,16 +389,16 @@ export default function Dashboard() {
                 {showYourBuilds && (
                     <>
                         <div className='absolute inset-0 bg-black/20' onClick={() => setShowYourBuilds(false)} />
-                        <div className='absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[420px] max-w-[92vw] max-h-[80vh] overflow-auto bg-white border border-[#C9DDC4] rounded-2xl p-5 shadow-2xl z-10'>
+                        <div className='absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[420px] max-w-[92vw] max-h-[80vh] overflow-auto bg-white dark:bg-[#14171A] border border-[#C9DDC4] dark:border-[#262E28] rounded-2xl p-5 shadow-2xl z-10'>
                             <div className='flex items-center justify-between mb-3'>
                                 <span className='text-base font-medium'>Your Builds</span>
-                                <button onClick={() => setShowYourBuilds(false)} aria-label='Close your builds' className='text-[#6A6F73] hover:text-[#1F2225]'>
+                                <button onClick={() => setShowYourBuilds(false)} aria-label='Close your builds' className='text-[#6A6F73] dark:text-[#8FA893] hover:text-[#1F2225] dark:hover:text-[#EAF3E7]'>
                                     <X size={16} />
                                 </button>
                             </div>
 
                             {unlockedBuildings.length === 0 && (
-                                <p className='text-[12px] text-[#6A6F73]'>Nothing unlocked yet - build one from the Build menu.</p>
+                                <p className='text-[12px] text-[#6A6F73] dark:text-[#8FA893]'>Nothing unlocked yet - build one from the Build menu.</p>
                             )}
 
                             <div className='space-y-2'>
@@ -396,9 +406,9 @@ export default function Dashboard() {
                                     const display = BUILD_DISPLAY[b.build_id] ?? DEFAULT_BUILD_DISPLAY
                                     const Icon = display.icon
                                     return (
-                                        <div key={b.build_id} className='flex items-center justify-between rounded-xl bg-[#EEF6ED] px-3 py-2.5'>
+                                        <div key={b.build_id} className='flex items-center justify-between rounded-xl bg-[#EEF6ED] dark:bg-[#1B211C] px-3 py-2.5'>
                                             <div className='flex items-center gap-2.5 text-[13px] font-medium'>
-                                                <span className='w-8 h-8 rounded-lg bg-white flex items-center justify-center shrink-0'>
+                                                <span className='w-8 h-8 rounded-lg bg-white dark:bg-[#0E1210] flex items-center justify-center shrink-0'>
                                                     <Icon size={16} className={display.iconColor} />
                                                 </span>
                                                 {b.build_menu?.name ?? b.build_id}
@@ -406,7 +416,7 @@ export default function Dashboard() {
                                             <button
                                                 onClick={() => handleUseBuilding(b)}
                                                 disabled={placingId === b.build_id}
-                                                className='rounded-full border border-[#C9DDC4] bg-white px-3 py-1.5 text-[11px] font-medium hover:border-[#A9D8AE] hover:text-[#1F2225] disabled:opacity-60'
+                                                className='rounded-full border border-[#C9DDC4] dark:border-[#262E28] bg-white dark:bg-[#0E1210] px-3 py-1.5 text-[11px] font-medium hover:border-[#A9D8AE] hover:text-[#1F2225] dark:hover:text-[#EAF3E7] disabled:opacity-60'
                                             >
                                                 {placingId === b.build_id ? 'Placing…' : 'Use'}
                                             </button>
@@ -418,7 +428,7 @@ export default function Dashboard() {
                     </>
                 )}
 
-                <div className='absolute bottom-4 right-4 w-[520px] max-w-[92vw] max-h-[88vh] overflow-auto bg-white border border-[#C9DDC4] rounded-2xl p-5 shadow-2xl z-20'>
+                <div className='absolute bottom-4 right-4 w-[520px] max-w-[92vw] max-h-[88vh] overflow-auto bg-white dark:bg-[#14171A] border border-[#C9DDC4] dark:border-[#262E28] rounded-2xl p-5 shadow-2xl z-20'>
                     <div className='flex items-center justify-between mb-3'>
                         <span className='text-base font-medium'>Build menu</span>
                     </div>
@@ -434,7 +444,7 @@ export default function Dashboard() {
                             />
                         ))}
                         {buildMenu.length === 0 && (
-                            <p className='col-span-2 text-[12px] text-[#6A6F73]'>No buildings available yet.</p>
+                            <p className='col-span-2 text-[12px] text-[#6A6F73] dark:text-[#8FA893]'>No buildings available yet.</p>
                         )}
                     </div>
                 </div>
@@ -488,19 +498,19 @@ function BuildMenuCard({ build, resources, level, unlocked }) {
     }
 
     return (
-        <div className='rounded-xl border border-[#C9DDC4] p-2.5'>
+        <div className='rounded-xl border border-[#C9DDC4] dark:border-[#262E28] p-2.5'>
             <div className='flex items-center gap-1.5 text-[13px] font-medium mb-1.5'>
                 <ItemIcon size={16} className={display.iconColor} />
                 {build.name}
             </div>
-            <p className='text-[12px] text-[#6A6F73] mb-2'>{display.desc}</p>
+            <p className='text-[12px] text-[#6A6F73] dark:text-[#8FA893] mb-2'>{display.desc}</p>
 
             {!levelMet && (
-                <div className='text-[12px] text-[#6A6F73]'>Reach level {build.unlock_level} to unlock this building.</div>
+                <div className='text-[12px] text-[#6A6F73] dark:text-[#8FA893]'>Reach level {build.unlock_level} to unlock this building.</div>
             )}
 
             {levelMet && unlocked && (
-                <div className='flex items-center gap-1.5 text-[12px] font-medium text-[#3E7A42] bg-[#E1F0DF] rounded-lg px-2.5 py-2'>
+                <div className='flex items-center gap-1.5 text-[12px] font-medium text-[#3E7A42] dark:text-[#8FE0A0] bg-[#E1F0DF] dark:bg-[#1B2B1D] rounded-lg px-2.5 py-2'>
                     <Check size={13} strokeWidth={3} /> Unlocked — place it from Your Builds.
                 </div>
             )}
@@ -523,13 +533,13 @@ function BuildMenuCard({ build, resources, level, unlocked }) {
                         )
                     })}
 
-                    {message && <p className='text-[11px] text-[#6A6F73] mb-1.5'>{message}</p>}
+                    {message && <p className='text-[11px] text-[#6A6F73] dark:text-[#8FA893] mb-1.5'>{message}</p>}
 
                     {allMet ? (
                         <button
                             onClick={handleBuild}
                             disabled={busy}
-                            className='w-full mt-2 text-[12px] py-1.5 rounded-full transition-colors border-2 border-[#A9D8AE] text-[#1F2225] hover:bg-[#DDF0E1] disabled:opacity-60'
+                            className='w-full mt-2 text-[12px] py-1.5 rounded-full transition-colors border-2 border-[#A9D8AE] text-[#1F2225] dark:text-[#F2F5F0] hover:bg-[#DDF0E1] dark:hover:bg-[#1E2B20] disabled:opacity-60'
                         >
                             {busy ? 'Building…' : 'Build now'}
                         </button>

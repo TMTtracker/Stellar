@@ -70,24 +70,24 @@ function Shop() {
             <div className='mb-6'>
                 <p className='text-[11px] font-bold tracking-wider text-[#A9D8AE]'>SHOP</p>
                 <h1 className='text-3xl font-extrabold tracking-tight'>Spend your coins</h1>
-                <p className='text-sm text-[#6A6F73] mt-2 max-w-xl'>
+                <p className='text-sm text-[#6A6F73] dark:text-[#8FA893] mt-2 max-w-xl'>
                     Earn coins by completing lessons and passing quizzes, then trade them for materials and boosts.
                 </p>
             </div>
 
             <div className='flex flex-wrap items-center gap-3 mb-6'>
-                <div className='flex items-center gap-2 bg-white border border-[#C9DDC4] px-4 py-2 rounded-full'>
+                <div className='flex items-center gap-2 bg-white dark:bg-[#14171A] border border-[#C9DDC4] dark:border-[#262E28] px-4 py-2 rounded-full'>
                     <Coins size={16} className='text-[#E8933E]' />
                     <span className='text-sm font-bold'>{loading ? '…' : coins.toLocaleString()} coins</span>
                 </div>
-                <div className='flex items-center gap-2 bg-white border border-[#C9DDC4] px-4 py-2 rounded-full'>
+                <div className='flex items-center gap-2 bg-white dark:bg-[#14171A] border border-[#C9DDC4] dark:border-[#262E28] px-4 py-2 rounded-full'>
                     <Zap size={16} className='text-[#A9D8AE]' />
                     <span className='text-sm font-bold'>{loading ? '…' : xp.toLocaleString()} XP</span>
                 </div>
             </div>
 
             {message && (
-                <p className='text-sm bg-white border border-[#C9DDC4] rounded-xl px-4 py-3 mb-6'>{message}</p>
+                <p className='text-sm bg-white dark:bg-[#14171A] border border-[#C9DDC4] dark:border-[#262E28] rounded-xl px-4 py-3 mb-6'>{message}</p>
             )}
 
             <div className='grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-5'>
@@ -95,12 +95,12 @@ function Shop() {
                     const Icon = item.icon
                     const afford = coins >= item.price
                     return (
-                        <div key={item.id} className='bg-white rounded-2xl border border-[#C9DDC4] p-5 flex flex-col'>
-                            <div className='w-11 h-11 rounded-xl bg-[#EFF3EE] flex items-center justify-center mb-3'>
-                                <Icon size={20} className='text-[#6A6F73]' />
+                        <div key={item.id} className='bg-white dark:bg-[#14171A] rounded-2xl border border-[#C9DDC4] dark:border-[#262E28] p-5 flex flex-col'>
+                            <div className='w-11 h-11 rounded-xl bg-[#EFF3EE] dark:bg-[#1B211C] flex items-center justify-center mb-3'>
+                                <Icon size={20} className='text-[#6A6F73] dark:text-[#8FA893]' />
                             </div>
-                            <h3 className='font-bold leading-snug'>{item.name}</h3>
-                            <p className='text-xs text-[#6A6F73] mt-1 mb-4'>{item.desc}</p>
+                            <h3 className='font-bold leading-snug text-[#1F2225] dark:text-[#F2F5F0]'>{item.name}</h3>
+                            <p className='text-xs text-[#6A6F73] dark:text-[#8FA893] mt-1 mb-4'>{item.desc}</p>
                             <button
                                 onClick={() => handleBuy(item)}
                                 disabled={!afford || buying === item.id || loading}

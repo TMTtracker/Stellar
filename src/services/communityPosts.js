@@ -8,8 +8,18 @@ function isMissingColumn(error) {
     return !!error && /column|post_image/i.test(error.message ?? '')
 }
 
-const POST_COLUMNS = 'id, user_id, post_title, post_body, post_tag, post_likes, post_comments, post_time, profiles(display_name, xp_total)'
-const POST_COLUMNS_WITH_IMAGE = 'id, user_id, post_title, post_body, post_tag, post_likes, post_comments, post_time, post_image_url, profiles(display_name, xp_total)'
+// post_comments (the int counter column on user_posts) relies on a DB
+// trigger to stay in sync and is unreliable if that migration hasn't been
+// applied - the real, always-correct comment count is a live aggregate over
+// the post_comments table itself, embedded here as `comments: [{ count }]`.
+const POST_COLUMNS = 'id, user_id, post_title, post_body, post_tag, post_likes, post_time, profiles(display_name, xp_total), comments:post_comments(count)'
+const POST_COLUMNS_WITH_IMAGE = 'id, user_id, post_title, post_body, post_tag, post_likes, post_time, post_image_url, profiles(display_name, xp_total), comments:post_comments(count)'
+
+function withCommentCount(row) {
+    if (!row) return row
+    const { comments, ...rest } = row
+    return { ...rest, comment_count: comments?.[0]?.count ?? 0 }
+}
 
 // ---------- Image upload ----------
 
@@ -68,20 +78,6 @@ export async function getMyLikedPostIds(postIds = []) {
     return new Set((data ?? []).map(r => r.post_id))
 }
 
-export async function getAllMyLikedPostIds() {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return new Set()
-    const { data, error } = await supabase
-        .from('post_likes')
-        .select('post_id')
-        .eq('user_id', user.id)
-    if (error) {
-        if (isMissingTable(error)) return new Set()
-        throw error
-    }
-    return new Set((data ?? []).map(r => r.post_id))
-}
-
 export async function toggleLike(postId) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Must be signed in to react')
@@ -107,7 +103,11 @@ export async function toggleLike(postId) {
         return { liked: false, delta: -1 }
     } else {
         const { error: insError } = await supabase.from('post_likes').insert({ post_id: postId, user_id: user.id })
-        if (insError) throw insError
+        if (insError) {
+            // Unique (post_id, user_id) violation: another click already landed the like - treat as success
+            if (insError.code === '23505') return { liked: true, delta: 0 }
+            throw insError
+        }
         return { liked: true, delta: 1 }
     }
 }
@@ -193,11 +193,11 @@ export async function listPosts(limit = 50) {
                 if (isMissingTable(fallbackError)) return []
                 throw fallbackError
             }
-            return fallbackData ?? []
+            return (fallbackData ?? []).map(withCommentCount)
         }
         throw error
     }
-    return data ?? []
+    return (data ?? []).map(withCommentCount)
 }
 
 export async function createPost({ title, body, tag, imageUrl = null }) {
@@ -231,9 +231,9 @@ export async function createPost({ title, body, tag, imageUrl = null }) {
             .single()
         if (fallback.error) throw fallback.error
         // Attach imageUrl client-side for optimistic UI even though not persisted in column
-        return { ...fallback.data, post_image_url: imageUrl }
+        return { ...withCommentCount(fallback.data), post_image_url: imageUrl }
     }
 
     if (error) throw error
-    return data
+    return withCommentCount(data)
 }

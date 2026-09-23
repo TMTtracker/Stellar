@@ -8,6 +8,7 @@ import { leaderboardData } from './leaderboardData';
 import { getTopProfiles } from '@/services/wallet';
 import { levelForXp, levelProgress } from '@/lib/economy';
 import { supabase } from '@/services/supabaseClient';
+import ProtectedLayout from '@/components/ProtectedLayout/ProtectedLayout';
 import './Leaderboard.css';
 
 const MEDAL_LABELS = { 1: 'rank-gold', 2: 'rank-silver', 3: 'rank-bronze' };
@@ -178,9 +179,16 @@ function Leaderboard() {
 
     const selectedUser = sortedByRank.find((u) => u.id === selectedUserId) ?? topThree[0] ?? sortedByRank[0] ?? null;
 
-    if (!selectedUser) return null;
+    if (!selectedUser) {
+        return (
+            <ProtectedLayout>
+                <p className="text-sm text-[#6A6F73] dark:text-[#8FA893]">Loading leaderboard…</p>
+            </ProtectedLayout>
+        );
+    }
 
     return (
+        <ProtectedLayout>
         <section className="leaderboard-section" id="leaderboard">
             <div className="leaderboard-container">
                 {/* Left side - Podium + Intro, Ranked List */}
@@ -319,7 +327,7 @@ function Leaderboard() {
                                         <CourseRow key={course.id} title={course.title} progress={course.progress} />
                                     ))
                                 ) : (
-                                    <p className="text-xs" style={{ color: '#6A6F73', padding: '8px 0' }}>No courses enrolled yet — live data</p>
+                                    <p className="text-xs" style={{ color: 'var(--muted)', padding: '8px 0' }}>No courses enrolled yet — live data</p>
                                 )}
                             </div>
                         </div>
@@ -377,6 +385,7 @@ function Leaderboard() {
                 </DetailModal>
             )}
         </section>
+        </ProtectedLayout>
     );
 }
 
