@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Backpack, Trophy, Map, ShoppingBag, BookOpen, Bell, Settings, UserRound, Moon, Flame, Zap, Banknote, Building2, Building, Warehouse, Lock, BrickWall, TreeDeciduous, Gem, Mountain, Pickaxe, Beaker, Lightbulb, Feather, Clock, X, Hammer, Check } from 'lucide-react'
+import { Backpack, Trophy, Map, ShoppingBag, BookOpen, Bell, Settings, Flame, Zap, Banknote, Building2, Building, Warehouse, Lock, BrickWall, TreeDeciduous, Gem, Mountain, Pickaxe, Beaker, Lightbulb, Feather, Clock, X, Hammer, Check, User } from 'lucide-react'
 import ProtectedLayout from '@/components/ProtectedLayout/ProtectedLayout'
 import GameWorld from '@/components/GameWorld/GameWorld'
 import Profile from '@/components/Profile/Profile'
@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 import { useWallet } from '@/hooks/useWallet'
 import { usePlayerResources } from '@/hooks/usePlayerResources'
+import { useAvatar, isImageAvatar } from '@/hooks/useAvatar'
 import { listBuildMenu, listMyUnlockedBuildings, buildStructure, buyMissingMaterials, placeNewBuilding, RESOURCES_EVENT } from '@/services/resources'
 import { listDailyLessons } from '@/services/lessons'
 import { DollarSign } from 'lucide-react'
@@ -40,7 +41,8 @@ const nav = [
     { id: 'shop', label: 'Shop', icon: ShoppingBag, to: '/shop' },
     { id: 'inventory', label: 'Inventory', icon: Backpack, to: null },
     { id: 'your-builds', label: 'Your Builds', icon: Hammer, to: null },
-    { id: 'world-map', label: 'World map', icon: Map, to: '/' }
+    { id: 'world-map', label: 'World map', icon: Map, to: '/' },
+    { id: 'profile', label: 'Profile', icon: User, to: '/profile' }
 ]
 
 // Visual metadata for each building - icon/color/description aren't stored
@@ -87,6 +89,8 @@ export default function Dashboard() {
     const { user } = useAuth()
     const { coins, level, pct } = useWallet()
     const resources = usePlayerResources()
+    const { avatar } = useAvatar()
+    const avatarIsImage = isImageAvatar(avatar)
     const [buildMenu, setBuildMenu] = useState([])
     const [unlockedBuildings, setUnlockedBuildings] = useState([])
     const [placingId, setPlacingId] = useState('')
@@ -157,9 +161,15 @@ export default function Dashboard() {
                     <GameWorld />
                 </div>
 
-                {/* Top-left: profile chip + streak */}
-                <div className='absolute top-4 left-4 flex items-center gap-2.5 bg-white/95 border border-[#C9DDC4] rounded-xl px-3 py-2 shadow-sm'>
-                    <div className='w-9 h-9 rounded-full bg-[#141814] text-white flex items-center justify-center text-xs font-bold'>{initials}</div>
+                {/* Top-left: profile chip + streak — links to /profile */}
+                <button
+                    onClick={() => navigate('/profile')}
+                    className='absolute top-4 left-4 flex items-center gap-2.5 bg-white/95 border border-[#C9DDC4] rounded-xl px-3 py-2 shadow-sm hover:border-[#A9D8AE] hover:bg-white transition-colors text-left'
+                    aria-label="View profile"
+                >
+                    <div className='w-9 h-9 rounded-full bg-[#141814] text-white flex items-center justify-center text-xs font-bold overflow-hidden'>
+                        {avatarIsImage ? <img src={avatar} alt="Profile avatar" className="w-full h-full object-cover rounded-full" /> : avatar ? <span className="text-base leading-none">{avatar}</span> : initials}
+                    </div>
                     <div>
                         <div className='text-sm font-bold leading-none'>{displayName} · Lv {level}</div>
                         <div className='w-28 h-1.5 rounded-full bg-[#EAF2E6] mt-2 overflow-hidden'>
@@ -170,7 +180,7 @@ export default function Dashboard() {
                         <Flame size={15} fill='currentColor' />
                         {streak} Days Streak
                     </div>
-                </div>
+                </button>
 
                 {/* Top-left: Daily lessons panel */}
                 <div className='absolute top-[84px] left-4 w-[280px] bg-white/95 border border-[#C9DDC4] rounded-xl px-4 py-4 shadow-sm'>

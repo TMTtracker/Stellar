@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { X } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { X, ImagePlus, Trash2 } from 'lucide-react'
 
 const TAG_OPTIONS = ['Study Help', 'Milestone', 'Event', 'Questions']
 
@@ -13,7 +13,7 @@ function useEscapeToClose(onClose) {
     }, [onClose])
 }
 
-export default function NewPostModal({ authorName, authorLevel, onClose, onSubmit }) {
+export default function NewPostModal({ authorName, authorLevel, onClose, onSubmit, autoOpenImagePicker = false }) {
     const [title, setTitle] = useState('')
     const [body, setBody] = useState('')
     const [tag, setTag] = useState(TAG_OPTIONS[0])
@@ -21,6 +21,9 @@ export default function NewPostModal({ authorName, authorLevel, onClose, onSubmi
     const [entered, setEntered] = useState(false)
     const [submitting, setSubmitting] = useState(false)
     const [error, setError] = useState('')
+    const [imageFile, setImageFile] = useState(null)
+    const [imagePreview, setImagePreview] = useState('')
+    const fileInputRef = useRef(null)
 
     useEscapeToClose(requestClose)
 
@@ -28,6 +31,37 @@ export default function NewPostModal({ authorName, authorLevel, onClose, onSubmi
         const raf = requestAnimationFrame(() => setEntered(true))
         return () => cancelAnimationFrame(raf)
     }, [])
+
+    useEffect(() => {
+        if (autoOpenImagePicker && fileInputRef.current) {
+            const t = setTimeout(() => fileInputRef.current?.click(), 320)
+            return () => clearTimeout(t)
+        }
+    }, [autoOpenImagePicker])
+
+    function handleImageChange(e) {
+        const file = e.target.files?.[0]
+        if (!file) return
+        if (!file.type.startsWith('image/')) {
+            setError('Please select an image file.')
+            return
+        }
+        if (file.size > 5 * 1024 * 1024) {
+            setError('Image must be under 5MB.')
+            return
+        }
+        setError('')
+        setImageFile(file)
+        const url = URL.createObjectURL(file)
+        setImagePreview(url)
+    }
+
+    function removeImage() {
+        if (imagePreview) URL.revokeObjectURL(imagePreview)
+        setImageFile(null)
+        setImagePreview('')
+        if (fileInputRef.current) fileInputRef.current.value = ''
+    }
 
     function requestClose() {
         setClosing(true)
@@ -43,7 +77,7 @@ export default function NewPostModal({ authorName, authorLevel, onClose, onSubmi
         setSubmitting(true)
         setError('')
         try {
-            await onSubmit({ title: title.trim(), body: body.trim(), tag })
+            await onSubmit({ title: title.trim(), body: body.trim(), tag, imageFile })
         } catch (e) {
             setError(e.message || 'Something went wrong. Please try again.')
             setSubmitting(false)
@@ -106,7 +140,7 @@ export default function NewPostModal({ authorName, authorLevel, onClose, onSubmi
                 />
 
                 {/* Tags - single select */}
-                <div className='flex flex-wrap gap-2 mb-6'>
+                <div className='flex flex-wrap gap-2 mb-4'>
                     {TAG_OPTIONS.map((option) => {
                         const isActive = tag === option
                         return (
@@ -124,6 +158,40 @@ export default function NewPostModal({ authorName, authorLevel, onClose, onSubmi
                             </button>
                         )
                     })}
+                </div>
+
+                {/* Pic add */}
+                <div className='mb-4'>
+                    <input
+                        ref={fileInputRef}
+                        type='file'
+                        accept='image/*'
+                        onChange={handleImageChange}
+                        className='hidden'
+                    />
+                    {!imagePreview ? (
+                        <button
+                            type='button'
+                            onClick={() => fileInputRef.current?.click()}
+                            className='flex items-center gap-2 text-sm font-medium text-[#6A6F73] border border-[#C9DDC4] rounded-xl px-3 py-2 hover:border-[#A9D8AE] hover:text-[#1F2225] transition-colors'
+                        >
+                            <ImagePlus size={16} className='text-[#A9D8AE]' />
+                            Add picture
+                        </button>
+                    ) : (
+                        <div className='relative rounded-xl overflow-hidden border border-[#C9DDC4]'>
+                            <img src={imagePreview} alt='Selected preview' className='w-full max-h-52 object-cover' />
+                            <button
+                                type='button'
+                                onClick={removeImage}
+                                className='absolute top-2 right-2 w-8 h-8 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80 transition-colors'
+                                aria-label='Remove image'
+                            >
+                                <Trash2 size={14} />
+                            </button>
+                        </div>
+                    )}
+                    <p className='text-[11px] text-[#8BA089] mt-1.5'>PNG, JPG up to 5MB — optional</p>
                 </div>
 
                 {error && (

@@ -1,151 +1,540 @@
-import { useEffect, useState } from 'react'
-import { Check, LockKeyhole, Mail, UserRound, X } from 'lucide-react'
+import { useEffect, useState, useCallback, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { Zap, Banknote, Trophy, Star, Pencil, Award, BookOpen, Flame, Library, X, Mail, Lock, User as UserIcon, Image as ImageIcon, Save } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { useWallet } from '@/hooks/useWallet'
-import { useInventory } from '@/hooks/useInventory'
-import { getMyRecentRewards } from '@/services/wallet'
+import { getMyProfile, getMyRecentRewards } from '@/services/wallet'
+import { getMyEnrollments } from '@/services/courses'
+import { levelProgress, xpForLevel } from '@/lib/economy'
+import { supabase } from '@/services/supabaseClient'
+import { useAvatar, isImageAvatar } from '@/hooks/useAvatar'
+import './Profile.css'
 
-function Profile({ modal = false, onClose }) {
-    const { user, updateProfile } = useAuth()
-    const { xp, coins, level, pct, loading: walletLoading } = useWallet()
-    const { inventory, total: materialTotal, loading: invLoading } = useInventory()
-    const [rewards, setRewards] = useState([])
-    const [displayName, setDisplayName] = useState('')
-    const [password, setPassword] = useState('')
-    const [confirmPassword, setConfirmPassword] = useState('')
-    const [status, setStatus] = useState({ type: '', message: '' })
-    const [saving, setSaving] = useState(false)
+const AVATAR_OPTIONS = ['🧑‍🚀', '👩‍🎓', '🧑‍💻', '🦊', '🐱', '⭐', '🎓', '🌟', '🔥', '🚀', '🧠', '💎']
 
-    useEffect(() => {
-        setDisplayName(user?.user_metadata?.full_name || '')
-    }, [user])
-
-    async function handleSubmit(event) {
-        event.preventDefault()
-        setStatus({ type: '', message: '' })
-
-        if (!displayName.trim()) {
-            setStatus({ type: 'error', message: 'Display name cannot be empty.' })
-            return
-        }
-        if (password && password.length < 6) {
-            setStatus({ type: 'error', message: 'Password must be at least 6 characters.' })
-            return
-        }
-        if (password !== confirmPassword) {
-            setStatus({ type: 'error', message: 'Passwords do not match.' })
-            return
-        }
-
-        setSaving(true)
-        try {
-            await updateProfile({ displayName, password })
-            setPassword('')
-            setConfirmPassword('')
-            setStatus({ type: 'success', message: 'Profile updated successfully.' })
-        } catch (error) {
-            setStatus({ type: 'error', message: error.message || 'Could not update your profile.' })
-        } finally {
-            setSaving(false)
-        }
-    }
-
-    useEffect(() => {
-        if (!user) return
-        let cancelled = false
-        getMyRecentRewards(10).then(rows => {
-            if (!cancelled) setRewards(rows ?? [])
-        }).catch(() => {})
-        return () => { cancelled = true }
-    }, [user])
-
-    return (
-        <div id='profile' className={`${modal ? 'p-5 sm:p-6' : 'min-h-screen scroll-mt-27.5 p-6'} max-w-3xl mx-auto`}>
-            <div className='flex items-start justify-between'>
-                <div>
-                    <p className='text-[11px] font-bold tracking-wider text-[#A9D8AE]'>PROFILE</p>
-                    <h1 className='text-3xl font-extrabold tracking-tight mt-1'>
-                        {user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Stellar Cadet'}
-                    </h1>
-                    <p className='text-sm text-[#6A6F73] mt-1'>{user?.email}</p>
-                </div>
-                {modal && (
-                    <button onClick={onClose} aria-label='Close profile' className='text-[#6A6F73] hover:text-[#1F2225]'>
-                        <X size={18} />
-                    </button>
-                )}
-            </div>
-
-            <form onSubmit={handleSubmit} className='mt-6 rounded-2xl border border-[#C9DDC4] bg-white p-6'>
-                <h2 className='mb-5 text-lg font-bold'>Profile settings</h2>
-                <div className='space-y-5'>
-                    <label className='block'>
-                        <span className='mb-2 flex items-center gap-2 text-sm font-bold'><UserRound size={16} /> Display name</span>
-                        <input value={displayName} onChange={event => setDisplayName(event.target.value)} maxLength={60} className='w-full rounded-xl border border-[#C9DDC4] px-4 py-3 outline-none focus:border-[#72A96D] focus:ring-2 focus:ring-[#DCEFD6]' />
-                    </label>
-                    <label className='block'>
-                        <span className='mb-2 flex items-center gap-2 text-sm font-bold'><Mail size={16} /> Email address</span>
-                        <input value={user?.email || ''} disabled className='w-full cursor-not-allowed rounded-xl border border-[#E3E8E1] bg-[#F3F5F2] px-4 py-3 text-[#8B928C]' />
-                        <span className='mt-2 block text-xs text-[#8B928C]'>Your email address cannot be changed here.</span>
-                    </label>
-                    <div className='border-t border-[#E8EEE5] pt-5'>
-                        <p className='mb-3 flex items-center gap-2 text-sm font-bold'><LockKeyhole size={16} /> Change password</p>
-                        <div className='grid gap-3 sm:grid-cols-2'>
-                            <input type='password' value={password} onChange={event => setPassword(event.target.value)} placeholder='New password' autoComplete='new-password' className='rounded-xl border border-[#C9DDC4] px-4 py-3 outline-none focus:border-[#72A96D] focus:ring-2 focus:ring-[#DCEFD6]' />
-                            <input type='password' value={confirmPassword} onChange={event => setConfirmPassword(event.target.value)} placeholder='Confirm new password' autoComplete='new-password' className='rounded-xl border border-[#C9DDC4] px-4 py-3 outline-none focus:border-[#72A96D] focus:ring-2 focus:ring-[#DCEFD6]' />
-                        </div>
-                        <p className='mt-2 text-xs text-[#8B928C]'>Leave both fields blank to keep your current password.</p>
-                    </div>
-                </div>
-                {status.message && <p className={`mt-5 rounded-xl px-4 py-3 text-sm font-semibold ${status.type === 'success' ? 'bg-[#E7F5E4] text-[#3E7E45]' : 'bg-[#FDEAE8] text-[#B44540]'}`}>{status.message}</p>}
-                <div className='mt-5 flex justify-end'>
-                    <button type='submit' disabled={saving} className='flex items-center gap-2 rounded-xl bg-[#72A96D] px-5 py-3 text-sm font-extrabold text-white disabled:opacity-60'>
-                        <Check size={16} /> {saving ? 'Saving...' : 'Save changes'}
-                    </button>
-                </div>
-            </form>
-
-            <div className='grid grid-cols-3 gap-4 mt-6'>
-                <div className='bg-white border border-[#C9DDC4] rounded-2xl p-4'>
-                    <p className='text-xs text-[#6A6F73]'>Level</p>
-                    <p className='text-2xl font-bold'>{walletLoading ? '…' : level}</p>
-                    <p className='text-xs text-[#6A6F73] mt-1'>{walletLoading ? '' : `${pct}% to next`}</p>
-                </div>
-                <div className='bg-white border border-[#C9DDC4] rounded-2xl p-4'>
-                    <p className='text-xs text-[#6A6F73]'>XP</p>
-                    <p className='text-2xl font-bold'>{walletLoading ? '…' : xp.toLocaleString()}</p>
-                </div>
-                <div className='bg-white border border-[#C9DDC4] rounded-2xl p-4'>
-                    <p className='text-xs text-[#6A6F73]'>Coins</p>
-                    <p className='text-2xl font-bold'>{walletLoading ? '…' : coins.toLocaleString()}</p>
-                </div>
-            </div>
-
-            <h2 className='font-bold mt-8 mb-3'>Materials ({invLoading ? '…' : materialTotal})</h2>
-            <div className='grid grid-cols-4 gap-2'>
-                {Object.entries(inventory).map(([name, qty]) => (
-                    <div key={name} className='bg-[#EEF6ED] rounded-xl py-2.5 text-center'>
-                        <p className='font-bold text-sm'>{qty}</p>
-                        <p className='text-[11px] text-[#6A6F73]'>{name.replace('_', ' ')}</p>
-                    </div>
-                ))}
-            </div>
-
-            <h2 className='font-bold mt-8 mb-3'>Recent rewards</h2>
-            {rewards.length === 0 ? (
-                <p className='text-sm text-[#6A6F73]'>No rewards yet — complete a lesson or quiz.</p>
-            ) : (
-                <ul className='space-y-2'>
-                    {rewards.map(r => (
-                        <li key={r.id} className='bg-white border border-[#C9DDC4] rounded-xl px-4 py-2.5 text-sm flex justify-between'>
-                            <span className='font-medium'>{r.kind.replace('_', ' ')}</span>
-                            <span className='text-[#6A6F73]'>+{r.xp} XP · +{r.coins} coins</span>
-                        </li>
-                    ))}
-                </ul>
-            )}
-        </div>
-    )
+function formatDate(dateStr) {
+  if (!dateStr) return '—'
+  try {
+    return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+  } catch {
+    return dateStr
+  }
 }
 
-export default Profile
+function kindLabel(kind) {
+  switch (kind) {
+    case 'lesson_complete': return 'Lesson completed'
+    case 'quiz_pass': return 'Quiz passed'
+    case 'spend': return 'Coins spent'
+    case 'grant': return 'Reward granted'
+    default: return kind || 'Activity'
+  }
+}
+
+function kindIcon(kind) {
+  switch (kind) {
+    case 'lesson_complete': return BookOpen
+    case 'quiz_pass': return Award
+    case 'spend': return Banknote
+    default: return Zap
+  }
+}
+
+export default function Profile() {
+  const { user } = useAuth()
+  const navigate = useNavigate()
+  const { xp, coins, current, needed, pct, loading: walletLoading } = useWallet()
+
+  const [profile, setProfile] = useState(null)
+  const [rewards, setRewards] = useState([])
+  const [enrolledCount, setEnrolledCount] = useState(0)
+  const [loading, setLoading] = useState(true)
+  const { avatar, setAvatar } = useAvatar()
+
+  // Edit profile modal state
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [draftAvatar, setDraftAvatar] = useState(avatar)
+  const [draftName, setDraftName] = useState('')
+  const [draftEmail, setDraftEmail] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [editMsg, setEditMsg] = useState(null)
+  const fileInputRef = useRef(null)
+
+  const fetchData = useCallback(async () => {
+    if (!user) {
+      setLoading(false)
+      return
+    }
+    setLoading(true)
+    try {
+      const [p, r, enrollments] = await Promise.all([
+        getMyProfile(),
+        getMyRecentRewards(20),
+        getMyEnrollments().catch(() => []),
+      ])
+      setProfile(p)
+      setRewards(r ?? [])
+      setEnrolledCount(Array.isArray(enrollments) ? enrollments.length : 0)
+    } catch (e) {
+      console.error('[profile] fetch failed:', e.message)
+    } finally {
+      setLoading(false)
+    }
+  }, [user])
+
+  useEffect(() => {
+    let cancelled = false
+    Promise.resolve()
+      .then(() => {
+        if (!cancelled) fetchData()
+      })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [fetchData])
+
+  const openEditModal = useCallback(() => {
+    setDraftAvatar(avatar)
+    setDraftName(profile?.display_name || '')
+    setDraftEmail(user?.email || '')
+    setNewPassword('')
+    setConfirmPassword('')
+    setEditMsg(null)
+    setShowEditModal(true)
+  }, [avatar, profile?.display_name, user?.email])
+
+  const closeEditModal = useCallback(() => {
+    if (saving) return
+    setShowEditModal(false)
+  }, [saving])
+
+  // Close on Escape
+  useEffect(() => {
+    if (!showEditModal) return
+    const onKey = (e) => { if (e.key === 'Escape') closeEditModal() }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [showEditModal, closeEditModal])
+
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (!file.type.startsWith('image/')) {
+      setEditMsg({ type: 'error', text: 'Please select an image file.' })
+      return
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      setEditMsg({ type: 'error', text: 'Image must be smaller than 2 MB.' })
+      return
+    }
+    const reader = new FileReader()
+    reader.onload = () => {
+      const result = reader.result
+      if (typeof result === 'string') setDraftAvatar(result)
+    }
+    reader.onerror = () => setEditMsg({ type: 'error', text: 'Failed to read image.' })
+    reader.readAsDataURL(file)
+    // reset input so same file can be re-selected
+    e.target.value = ''
+  }
+
+  const handleSave = async () => {
+    setEditMsg(null)
+
+    const trimmedName = draftName.trim()
+    const trimmedEmail = draftEmail.trim()
+
+    if (!trimmedName) {
+      setEditMsg({ type: 'error', text: 'Display name cannot be empty.' })
+      return
+    }
+    if (trimmedEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+      setEditMsg({ type: 'error', text: 'Please enter a valid email address.' })
+      return
+    }
+    if (newPassword || confirmPassword) {
+      if (newPassword.length < 6) {
+        setEditMsg({ type: 'error', text: 'Password must be at least 6 characters.' })
+        return
+      }
+      if (newPassword !== confirmPassword) {
+        setEditMsg({ type: 'error', text: 'Passwords do not match.' })
+        return
+      }
+    }
+
+    setSaving(true)
+    try {
+      // 1) Avatar / profile pic — stored locally (no avatar column in DB), synced to top-right icon via useAvatar
+      if (draftAvatar !== avatar) {
+        setAvatar(draftAvatar)
+      }
+
+      // 2) Display name — profiles table
+      if (trimmedName !== (profile?.display_name || '')) {
+        const { error } = await supabase
+          .from('profiles')
+          .update({ display_name: trimmedName, updated_at: new Date().toISOString() })
+          .eq('user_id', user.id)
+        if (error) throw error
+        setProfile((prev) => (prev ? { ...prev, display_name: trimmedName } : prev))
+      }
+
+      let emailChanged = false
+      let pwdChanged = false
+
+      // 3) Email — supabase auth
+      if (trimmedEmail !== (user.email || '')) {
+        const { error } = await supabase.auth.updateUser({ email: trimmedEmail })
+        if (error) throw error
+        emailChanged = true
+      }
+
+      // 4) Password — supabase auth
+      if (newPassword) {
+        const { error } = await supabase.auth.updateUser({ password: newPassword })
+        if (error) throw error
+        pwdChanged = true
+      }
+
+      let msg = 'Profile updated successfully.'
+      if (emailChanged && pwdChanged) msg = 'Profile updated. Password changed and email confirmation sent to your new address.'
+      else if (emailChanged) msg = 'Email update requested. Check your new inbox to confirm the change.'
+      else if (pwdChanged) msg = 'Password updated successfully.'
+
+      setEditMsg({ type: 'success', text: msg })
+      // keep modal open so user sees success; auto-close after short delay if no email confirmation pending
+      if (!emailChanged) {
+        setTimeout(() => {
+          setShowEditModal(false)
+          setNewPassword('')
+          setConfirmPassword('')
+        }, 900)
+      }
+    } catch (e) {
+      setEditMsg({ type: 'error', text: e.message || 'Update failed. Please try again.' })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  // Derived stats - mirrors economy.js / dashboard consistency
+  const progress = levelProgress(xp)
+  const nextLevelXp = xpForLevel(progress.level + 1)
+  const xpToNext = Math.max(0, nextLevelXp - xp)
+  const memberSince = profile?.created_at ? formatDate(profile.created_at) : user?.created_at ? formatDate(user.created_at) : '—'
+  const email = user?.email || profile?.user_id || '—'
+
+  // Guest / signed out state
+  if (!user) {
+    return (
+      <section id="profile" className="profile-section">
+        <div className="profile-container">
+          <div className="profile-guest">
+            <div style={{ fontSize: 36, marginBottom: 12 }}>👋</div>
+            <h3>Your profile awaits</h3>
+            <p>Sign in to see your level, coins, XP history and customize your Stellar identity.</p>
+            <button className="profile-guest-btn" onClick={() => navigate('/')}>Go to Home</button>
+          </div>
+        </div>
+      </section>
+    )
+  }
+
+  if (loading || walletLoading) {
+    return (
+      <section id="profile" className="profile-section">
+        <div className="profile-container">
+          <div className="profile-card" style={{ textAlign: 'center', padding: 40 }}>
+            <p style={{ color: '#6A6F73', fontSize: 13 }}>Loading your Stellar profile…</p>
+          </div>
+        </div>
+      </section>
+    )
+  }
+
+  const avatarIsImage = isImageAvatar(avatar)
+  const draftAvatarIsImage = isImageAvatar(draftAvatar)
+
+  return (
+    <section id="profile" className="profile-section">
+      <div className="profile-container">
+        {/* Hero */}
+        <div className="profile-hero">
+          <div className="profile-hero-avatar-wrap">
+            <div className="profile-hero-avatar">
+              {avatarIsImage ? <img src={avatar} alt="Profile avatar" className="profile-hero-avatar-img" /> : avatar}
+            </div>
+            <button
+              className="profile-avatar-edit"
+              aria-label="Edit profile"
+              onClick={openEditModal}
+            >
+              <Pencil size={12} />
+            </button>
+          </div>
+
+          <div className="profile-hero-info">
+            <h2>
+              {profile?.display_name || 'Stellar Cadet'}
+              <small>Lv {progress.level}</small>
+            </h2>
+            <p className="profile-hero-email">{email}</p>
+            <div className="profile-level-row">
+              <span className="profile-level-pill">Level {progress.level}</span>
+              <div className="profile-progress-wrap">
+                <div className="profile-progress-bar">
+                  <div className="profile-progress-fill" style={{ width: `${progress.pct}%` }} />
+                </div>
+                <span className="profile-progress-text">
+                  {progress.current} / {progress.needed} XP to Lv {progress.level + 1} • {xpToNext} XP to go
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="profile-hero-actions">
+            <div className="profile-coins-badge">
+              <Banknote size={16} style={{ color: '#E8933E' }} />
+              {coins.toLocaleString()} coins
+            </div>
+            <div className="profile-coins-badge" style={{ background: 'white' }}>
+              <Zap size={16} style={{ color: '#A8D79F' }} />
+              {xp.toLocaleString()} XP
+            </div>
+          </div>
+        </div>
+
+        {/* Edit profile modal */}
+        {showEditModal && (
+          <div
+            className="profile-edit-overlay"
+            onMouseDown={(e) => { if (e.target === e.currentTarget) closeEditModal() }}
+          >
+            <div className="profile-edit-modal" role="dialog" aria-modal="true" aria-label="Edit profile">
+              <button className="profile-edit-close" onClick={closeEditModal} aria-label="Close edit profile">
+                <X size={18} />
+              </button>
+
+              <h3 className="profile-edit-title">Edit profile</h3>
+              <p className="profile-edit-subtitle">Update your avatar, display name, email and password.</p>
+
+              {/* Avatar / Profile pic */}
+              <div className="profile-edit-section">
+                <label className="profile-edit-label">
+                  <ImageIcon size={14} /> Avatar / Profile picture
+                </label>
+                <div className="profile-edit-avatar-row">
+                  <div className="profile-edit-avatar-preview">
+                    {draftAvatarIsImage ? <img src={draftAvatar} alt="Preview" /> : <span>{draftAvatar}</span>}
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div className="profile-edit-hint">Choose an emoji below or upload a photo. Uploaded images are stored locally on this device.</div>
+                    <button type="button" className="profile-edit-upload-btn" onClick={() => fileInputRef.current?.click()}>
+                      <ImageIcon size={14} /> Upload photo
+                    </button>
+                    <input ref={fileInputRef} type="file" accept="image/*" hidden onChange={handleFileChange} />
+                  </div>
+                </div>
+                <div className="profile-avatar-grid">
+                  {AVATAR_OPTIONS.map(emoji => (
+                    <button
+                      key={emoji}
+                      type="button"
+                      className={`profile-avatar-option ${draftAvatar === emoji ? 'active' : ''}`}
+                      onClick={() => setDraftAvatar(emoji)}
+                      aria-label={`Select avatar ${emoji}`}
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Fields */}
+              <div className="profile-edit-section">
+                <div className="profile-edit-field">
+                  <label><UserIcon size={12} /> Display name</label>
+                  <div className="profile-edit-input-wrap">
+                    <UserIcon size={16} className="profile-edit-input-icon" />
+                    <input
+                      className="profile-edit-input has-icon"
+                      type="text"
+                      placeholder="Stellar Cadet"
+                      value={draftName}
+                      onChange={(e) => setDraftName(e.target.value)}
+                      maxLength={32}
+                    />
+                  </div>
+                </div>
+
+                <div className="profile-edit-field">
+                  <label><Mail size={12} /> Email</label>
+                  <div className="profile-edit-input-wrap">
+                    <Mail size={16} className="profile-edit-input-icon" />
+                    <input
+                      className="profile-edit-input has-icon"
+                      type="email"
+                      placeholder="you@example.com"
+                      value={draftEmail}
+                      onChange={(e) => setDraftEmail(e.target.value)}
+                      autoComplete="email"
+                    />
+                  </div>
+                  <span className="profile-edit-hint">Changing email sends a confirmation to the new address.</span>
+                </div>
+
+                <div className="profile-edit-field">
+                  <label><Lock size={12} /> New password</label>
+                  <div className="profile-edit-input-wrap">
+                    <Lock size={16} className="profile-edit-input-icon" />
+                    <input
+                      className="profile-edit-input has-icon"
+                      type="password"
+                      placeholder="Leave blank to keep current"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      autoComplete="new-password"
+                    />
+                  </div>
+                </div>
+
+                <div className="profile-edit-field">
+                  <label><Lock size={12} /> Confirm new password</label>
+                  <div className="profile-edit-input-wrap">
+                    <Lock size={16} className="profile-edit-input-icon" />
+                    <input
+                      className="profile-edit-input has-icon"
+                      type="password"
+                      placeholder="Confirm new password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      autoComplete="new-password"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {editMsg && <div className={`profile-message ${editMsg.type}`}>{editMsg.text}</div>}
+
+              <div className="profile-edit-actions">
+                <button type="button" className="profile-cancel-btn" onClick={closeEditModal} disabled={saving}>Cancel</button>
+                <button type="button" className="profile-save-btn" onClick={handleSave} disabled={saving}>
+                  {saving ? 'Saving…' : <><Save size={14} /> Save changes</>}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Main grid */}
+        <div className="profile-grid">
+          {/* Left column: stats + details */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+            <div className="profile-card">
+              <h3>
+                Stats overview
+                <span>{rewards.length} activities</span>
+              </h3>
+              <div className="profile-stats-grid">
+                <div className="profile-stat">
+                  <div className="profile-stat-icon"><Trophy size={18} /></div>
+                  <strong>{progress.level}</strong>
+                  <span>Level</span>
+                </div>
+                <div className="profile-stat">
+                  <div className="profile-stat-icon"><Zap size={18} /></div>
+                  <strong>{xp.toLocaleString()}</strong>
+                  <span>Total XP</span>
+                </div>
+                <div className="profile-stat">
+                  <div className="profile-stat-icon"><Banknote size={18} /></div>
+                  <strong>{coins.toLocaleString()}</strong>
+                  <span>Coins</span>
+                </div>
+                <div className="profile-stat">
+                  <div className="profile-stat-icon"><Star size={18} fill="#F6C445" color="#F6C445" /></div>
+                  <strong>{pct}%</strong>
+                  <span>Progress</span>
+                </div>
+                <div className="profile-stat">
+                  <div className="profile-stat-icon"><Flame size={18} color="#E8933E" /></div>
+                  <strong>9</strong>
+                  <span>Day streak</span>
+                </div>
+                <div className="profile-stat">
+                  <div className="profile-stat-icon"><Library size={18} /></div>
+                  <strong>{enrolledCount}</strong>
+                  <span>Courses enrolled</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="profile-card">
+              <h3>Account details</h3>
+              <div className="profile-detail-row">
+                <span>Display name</span>
+                <span>{profile?.display_name || '—'}</span>
+              </div>
+              <div className="profile-detail-row">
+                <span>Email</span>
+                <span style={{ fontSize: 12, wordBreak: 'break-all' }}>{email}</span>
+              </div>
+              <div className="profile-detail-row">
+                <span>User ID</span>
+                <span style={{ fontSize: 10, color: '#6A6F73', fontFamily: 'monospace' }}>{profile?.user_id?.slice(0, 8)}…</span>
+              </div>
+              <div className="profile-detail-row">
+                <span>Level formula</span>
+                <span style={{ fontSize: 11, color: '#6A6F73' }}>{current}/{needed} XP</span>
+              </div>
+              <div className="profile-detail-row">
+                <span>Member since</span>
+                <span>{memberSince}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Right column: history */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+            <div className="profile-card">
+              <h3>
+                Recent XP history
+                <span>{xp} XP total</span>
+              </h3>
+              {rewards.length === 0 ? (
+                <div className="profile-empty">
+                  No activity yet. Complete a lesson or pass a quiz to earn XP &amp; coins — they&apos;ll appear here.
+                </div>
+              ) : (
+                <div className="profile-history-list">
+                  {rewards.map(item => {
+                    const Icon = kindIcon(item.kind)
+                    const isPositive = (item.coins ?? 0) >= 0 && (item.xp ?? 0) >= 0
+                    return (
+                      <div key={item.id} className="profile-history-item">
+                        <div className="profile-history-icon">
+                          <Icon size={16} style={{ color: isPositive ? '#A8D79F' : '#E05252' }} />
+                        </div>
+                        <div className="profile-history-info">
+                          <strong>{kindLabel(item.kind)}</strong>
+                          <small>{formatDate(item.created_at)}{item.note ? ` • ${item.note}` : ''}</small>
+                        </div>
+                        <div className="profile-history-reward">
+                          {item.xp !== 0 && <span className="xp">+{item.xp} XP</span>}
+                          {item.coins !== 0 && <span className="coins">{item.coins > 0 ? '+' : ''}{item.coins} coins</span>}
+                          {item.xp === 0 && item.coins === 0 && <span style={{ fontSize: 11, color: '#6A6F73' }}>—</span>}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+}
