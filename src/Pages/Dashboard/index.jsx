@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Backpack, Trophy, Map, ShoppingBag, BookOpen, Bell, Settings, Flame, Zap, Banknote, Building2, Building, Warehouse, Lock, BrickWall, TreeDeciduous, Gem, Mountain, Pickaxe, Beaker, Lightbulb, Feather, Clock, X, Hammer, Check, User, Moon, Sun, LogOut } from 'lucide-react'
+import { Backpack, Trophy, Map, ShoppingBag, BookOpen, Bell, Settings, Flame, Zap, Banknote, Building2, Building, Warehouse, Lock, BrickWall, TreeDeciduous, Gem, Mountain, Pickaxe, Beaker, Lightbulb, Feather, Clock, X, Hammer, Check, User, Moon, Sun, LogOut, Minus, ListChecks, Blocks } from 'lucide-react'
 import ProtectedLayout from '@/components/ProtectedLayout/ProtectedLayout'
 import GameWorld from '@/components/GameWorld/GameWorld'
 import { useNavigate } from 'react-router-dom'
@@ -97,6 +97,8 @@ export default function Dashboard() {
     const [dailyLessons, setDailyLessons] = useState([])
     const [dailyLoading, setDailyLoading] = useState(true)
     const [dailyError, setDailyError] = useState('')
+    const [showDailyLessons, setShowDailyLessons] = useState(true)
+    const [showBuildMenuPanel, setShowBuildMenuPanel] = useState(true)
 
     const displayName = user?.user_metadata?.full_name || user?.email || 'Stellar Cadet'
     const initials = displayName.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
@@ -191,9 +193,31 @@ export default function Dashboard() {
                     </div>
                 </button>
 
-                {/* Top-left: Daily lessons panel */}
+                {/* Top-left: Daily lessons panel - minimizes to a small icon so the
+                    game world underneath stays visible when not needed. */}
+                {!showDailyLessons && (
+                    <button
+                        onClick={() => setShowDailyLessons(true)}
+                        aria-label='Expand daily lessons'
+                        title='Daily lessons'
+                        className='absolute top-[84px] left-4 w-11 h-11 rounded-xl bg-white/95 dark:bg-[#14171A]/95 border border-[#C9DDC4] dark:border-[#262E28] shadow-sm flex items-center justify-center text-[#6A6F73] dark:text-[#8FA893] hover:border-[#A9D8AE] hover:text-[#1F2225] dark:hover:text-[#EAF3E7] transition-colors'
+                    >
+                        <ListChecks size={18} />
+                    </button>
+                )}
+                {showDailyLessons && (
                 <div className='absolute top-[84px] left-4 w-[280px] bg-white/95 dark:bg-[#14171A]/95 border border-[#C9DDC4] dark:border-[#262E28] rounded-xl px-4 py-4 shadow-sm'>
-                    <p className='text-[11px] font-bold tracking-wider text-[#6A6F73] dark:text-[#8FA893] mb-3'>DAILY LESSONS</p>
+                    <div className='flex items-center justify-between mb-3'>
+                        <p className='text-[11px] font-bold tracking-wider text-[#6A6F73] dark:text-[#8FA893]'>DAILY LESSONS</p>
+                        <button
+                            onClick={() => setShowDailyLessons(false)}
+                            aria-label='Minimize daily lessons'
+                            title='Minimize'
+                            className='w-6 h-6 -mr-1 -mt-1 flex items-center justify-center rounded-md text-[#6A6F73] dark:text-[#8FA893] hover:bg-[#DDF0E1] dark:hover:bg-[#1E2B20] hover:text-[#1F2225] dark:hover:text-[#EAF3E7] transition-colors'
+                        >
+                            <Minus size={14} />
+                        </button>
+                    </div>
                     {dailyLoading && <p className='text-[12px] text-[#6A6F73] dark:text-[#8FA893] py-3'>Loading lessons…</p>}
                     {!dailyLoading && dailyError && <p className='text-[12px] text-[#D9605B] py-3'>{dailyError}</p>}
                     {!dailyLoading && !dailyError && dailyLessons.length === 0 && (
@@ -246,6 +270,7 @@ export default function Dashboard() {
                     </button>
                     <p className='text-[11px] text-[#6A6F73] dark:text-[#8FA893] mt-3 pt-3 border-t border-[#C9DDC4] dark:border-[#262E28]'>Harder lessons drop rarer build materials, not just more XP.</p>
                 </div>
+                )}
 
                 {/* Top-right: friends + inventory + controls */}
                 <div className='absolute top-4 right-4 flex items-center gap-2'>
@@ -428,9 +453,30 @@ export default function Dashboard() {
                     </>
                 )}
 
+                {/* Bottom-right: Build menu - minimizes to a small icon so the
+                    game world underneath stays visible when not needed. */}
+                {!showBuildMenuPanel && (
+                    <button
+                        onClick={() => setShowBuildMenuPanel(true)}
+                        aria-label='Expand build menu'
+                        title='Build menu'
+                        className='absolute bottom-4 right-4 w-12 h-12 rounded-2xl bg-white dark:bg-[#14171A] border border-[#C9DDC4] dark:border-[#262E28] shadow-2xl z-20 flex items-center justify-center text-[#6A6F73] dark:text-[#8FA893] hover:border-[#A9D8AE] hover:text-[#1F2225] dark:hover:text-[#EAF3E7] transition-colors'
+                    >
+                        <Blocks size={20} />
+                    </button>
+                )}
+                {showBuildMenuPanel && (
                 <div className='absolute bottom-4 right-4 w-[520px] max-w-[92vw] max-h-[88vh] overflow-auto bg-white dark:bg-[#14171A] border border-[#C9DDC4] dark:border-[#262E28] rounded-2xl p-5 shadow-2xl z-20'>
                     <div className='flex items-center justify-between mb-3'>
                         <span className='text-base font-medium'>Build menu</span>
+                        <button
+                            onClick={() => setShowBuildMenuPanel(false)}
+                            aria-label='Minimize build menu'
+                            title='Minimize'
+                            className='w-6 h-6 flex items-center justify-center rounded-md text-[#6A6F73] dark:text-[#8FA893] hover:bg-[#DDF0E1] dark:hover:bg-[#1E2B20] hover:text-[#1F2225] dark:hover:text-[#EAF3E7] transition-colors'
+                        >
+                            <Minus size={14} />
+                        </button>
                     </div>
 
                     <div className='grid grid-cols-2 gap-2.5'>
@@ -448,6 +494,7 @@ export default function Dashboard() {
                         )}
                     </div>
                 </div>
+                )}
             </div>
         </ProtectedLayout>
     )
