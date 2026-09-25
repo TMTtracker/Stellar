@@ -1,15 +1,17 @@
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Canvas } from "@react-three/fiber"
-import { OrbitControls, Grid } from "@react-three/drei"
+import { OrbitControls, Grid, Sparkles } from "@react-three/drei"
 import { ArrowUp, ArrowDown, ArrowLeft, ArrowRight, RotateCw, Trash2 } from "lucide-react"
 import Camp from "../HeroModel/Camp"
 import { Building, GrassField, Tree } from "./WorldProps"
 import BuildingModel from "./BuildingModel"
 import { listMyBuildings, moveBuilding, rotateBuilding, removeBuilding, RESOURCES_EVENT } from "@/services/resources"
+import { getMyBase, moveBase, rotateBase, BASE_EVENT } from "@/services/base"
 
 import windMillModel from "../../assets/models/SM_Wind_mill.glb"
 import waterWellModel from "../../assets/models/SM_Water_Well.glb"
 import workspaceModel from "../../assets/models/SM_WorkSpace.glb"
+import houseModel from "../../assets/models/SM_house.glb"
 
 // Which .glb model represents each build_menu id - any build_id not
 // listed here simply doesn't render anything yet.
@@ -17,6 +19,13 @@ const BUILDING_MODEL_URLS = {
     data_structures_hall: windMillModel,
     algorithms_tower: waterWellModel,
     interview_prep_dojo: workspaceModel
+}
+
+// Which .glb model represents each base level (level 1 has no entry - it's
+// always the hand-tuned <Camp/>, not a generic loaded model). Exported so
+// Dashboard's upgrade modal can preview the same model.
+export const BASE_MODEL_URLS = {
+    2: houseModel
 }
 
 // Placed buildings get spread out relative to this origin. Grid
@@ -28,6 +37,11 @@ const BUILDING_MODEL_URLS = {
 const PLACEMENT_ORIGIN = [4, 0, -6]
 const MOVE_STEP = 4
 
+// The base itself lives at its own origin (the camp's traditional spot),
+// independent of PLACEMENT_ORIGIN which is only for other buildings.
+const BASE_ORIGIN = [0, 0, 0]
+const BASE_SELECTED_ID = 'base'
+
 function toWorldPosition(b) {
     return [
         PLACEMENT_ORIGIN[0] + (b.pos_x ?? 0) * MOVE_STEP,
@@ -36,10 +50,24 @@ function toWorldPosition(b) {
     ]
 }
 
+function toBaseWorldPosition(b) {
+    return [
+        BASE_ORIGIN[0] + (b.pos_x ?? 0) * MOVE_STEP,
+        0,
+        BASE_ORIGIN[2] + (b.pos_y ?? 0) * MOVE_STEP
+    ]
+}
+
 function GameWorld({ dark = false }) {
     const [buildings, setBuildings] = useState([])
+    // Defaults match a brand-new player's row exactly, so the camp renders
+    // in the right spot immediately instead of popping in once the fetch
+    // resolves.
+    const [base, setBase] = useState({ base_level: 1, pos_x: 0, pos_y: 0, rotation: 0 })
     const [selectedId, setSelectedId] = useState(null)
     const [busy, setBusy] = useState(false)
+    const [showUpgradeEffect, setShowUpgradeEffect] = useState(false)
+    const prevBaseLevel = useRef(null)
 
     useEffect(() => {
         function load() {
@@ -50,13 +78,39 @@ function GameWorld({ dark = false }) {
         return () => window.removeEventListener(RESOURCES_EVENT, load)
     }, [])
 
-    const selected = buildings.find(b => b.id === selectedId) ?? null
+    useEffect(() => {
+        function loadBase() {
+            getMyBase().then(row => {
+                setBase(row)
+                // Skip the very first load (prevBaseLevel still null) - the
+                // sparkle burst is only for an actual upgrade just now, not
+                // for simply opening/reloading the page on an existing base.
+                if (prevBaseLevel.current != null && row.base_level > prevBaseLevel.current) {
+                    setShowUpgradeEffect(true)
+                    setTimeout(() => setShowUpgradeEffect(false), 2500)
+                }
+                prevBaseLevel.current = row.base_level
+            }).catch(() => {})
+        }
+        loadBase()
+        window.addEventListener(BASE_EVENT, loadBase)
+        return () => window.removeEventListener(BASE_EVENT, loadBase)
+    }, [])
+
+    const isBaseSelected = selectedId === BASE_SELECTED_ID
+    const selected = isBaseSelected ? base : (buildings.find(b => b.id === selectedId) ?? null)
 
     async function handleMove(dx, dy) {
         if (!selected || busy) return
         setBusy(true)
         try {
-            await moveBuilding(selected.id, { pos_x: (selected.pos_x ?? 0) + dx, pos_y: (selected.pos_y ?? 0) + dy })
+            const pos_x = (selected.pos_x ?? 0) + dx
+            const pos_y = (selected.pos_y ?? 0) + dy
+            if (isBaseSelected) {
+                await moveBase({ pos_x, pos_y })
+            } else {
+                await moveBuilding(selected.id, { pos_x, pos_y })
+            }
         } catch (e) {
             console.error('[gameworld] move failed:', e.message)
         } finally {
@@ -68,7 +122,12 @@ function GameWorld({ dark = false }) {
         if (!selected || busy) return
         setBusy(true)
         try {
-            await rotateBuilding(selected.id, ((selected.rotation ?? 0) + 90) % 360)
+            const rotation = ((selected.rotation ?? 0) + 90) % 360
+            if (isBaseSelected) {
+                await rotateBase(rotation)
+            } else {
+                await rotateBuilding(selected.id, rotation)
+            }
         } catch (e) {
             console.error('[gameworld] rotate failed:', e.message)
         } finally {
@@ -77,7 +136,7 @@ function GameWorld({ dark = false }) {
     }
 
     async function handleRemove() {
-        if (!selected || busy) return
+        if (!selected || busy || isBaseSelected) return
         setBusy(true)
         try {
             await removeBuilding(selected.id)
@@ -154,7 +213,37 @@ function GameWorld({ dark = false }) {
                     infiniteGrid={false}
                 />
 
-                <Camp />
+                {/* Home base - level 1 is always the hand-tuned camp; levels
+                    2+ swap in the matching upgraded model. Selectable/movable
+                    with the same tool as any other building (just never
+                    removable). */}
+                {base && (base.base_level <= 1 || !BASE_MODEL_URLS[base.base_level] ? (
+                    <Camp
+                        position={toBaseWorldPosition(base)}
+                        rotationDeg={base.rotation ?? 0}
+                        selected={isBaseSelected}
+                        onSelect={() => setSelectedId(BASE_SELECTED_ID)}
+                    />
+                ) : (
+                    <BuildingModel
+                        modelUrl={BASE_MODEL_URLS[base.base_level]}
+                        position={toBaseWorldPosition(base)}
+                        rotationDeg={base.rotation ?? 0}
+                        selected={isBaseSelected}
+                        onSelect={() => setSelectedId(BASE_SELECTED_ID)}
+                    />
+                ))}
+
+                {showUpgradeEffect && base && (
+                    <Sparkles
+                        position={toBaseWorldPosition(base)}
+                        count={80}
+                        scale={6}
+                        size={6}
+                        speed={0.6}
+                        color='#A9D8AE'
+                    />
+                )}
 
                 {/* Grass field */}
                 <GrassField size={44} count={500} color="#5aa353" />
@@ -246,15 +335,19 @@ function GameWorld({ dark = false }) {
                     >
                         <RotateCw size={17} />
                     </button>
-                    <span className='w-px h-6 bg-[#C9DDC4] dark:bg-[#262E28] mx-0.5' />
-                    <button
-                        aria-label='Remove building'
-                        disabled={busy}
-                        onClick={handleRemove}
-                        className='w-9 h-9 flex items-center justify-center rounded-lg text-[#C4634F] hover:bg-[#FBF1ED] dark:hover:bg-[#2A1716] disabled:opacity-50'
-                    >
-                        <Trash2 size={17} />
-                    </button>
+                    {!isBaseSelected && (
+                        <>
+                            <span className='w-px h-6 bg-[#C9DDC4] dark:bg-[#262E28] mx-0.5' />
+                            <button
+                                aria-label='Remove building'
+                                disabled={busy}
+                                onClick={handleRemove}
+                                className='w-9 h-9 flex items-center justify-center rounded-lg text-[#C4634F] hover:bg-[#FBF1ED] dark:hover:bg-[#2A1716] disabled:opacity-50'
+                            >
+                                <Trash2 size={17} />
+                            </button>
+                        </>
+                    )}
                 </div>
             )}
         </div>

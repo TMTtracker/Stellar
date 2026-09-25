@@ -122,7 +122,12 @@ async function enrichLiveRows(baseRows) {
     });
 }
 
-function Leaderboard() {
+// The actual leaderboard content (podium, ranked list, and the right-side
+// selected-user detail panel with achievements/courses/progression) - shared
+// as-is between the authenticated /leaderboard route (wrapped below in
+// ProtectedLayout) and the public landing page (wrapped in its own Sidebar/
+// Header instead), so both always show the same real leaderboard.
+export function LeaderboardContent() {
     const [liveRows, setLiveRows] = useState(null);
     const sortedByRank = useMemo(() => {
         if (liveRows && liveRows.length > 0) return liveRows;
@@ -180,15 +185,10 @@ function Leaderboard() {
     const selectedUser = sortedByRank.find((u) => u.id === selectedUserId) ?? topThree[0] ?? sortedByRank[0] ?? null;
 
     if (!selectedUser) {
-        return (
-            <ProtectedLayout>
-                <p className="text-sm text-[#6A6F73] dark:text-[#8FA893]">Loading leaderboard…</p>
-            </ProtectedLayout>
-        );
+        return <p className="text-sm text-[#6A6F73] dark:text-[#8FA893]">Loading leaderboard…</p>;
     }
 
     return (
-        <ProtectedLayout>
         <section className="leaderboard-section" id="leaderboard">
             <div className="leaderboard-container">
                 {/* Left side - Podium + Intro, Ranked List */}
@@ -385,6 +385,14 @@ function Leaderboard() {
                 </DetailModal>
             )}
         </section>
+    );
+}
+
+// Authenticated /leaderboard route: same content, inside the app shell.
+function Leaderboard() {
+    return (
+        <ProtectedLayout>
+            <LeaderboardContent />
         </ProtectedLayout>
     );
 }

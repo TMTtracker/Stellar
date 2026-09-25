@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Check, Lock, RotateCcw, Trophy, X, Zap, Coins } from 'lucide-react'
 import { getBestQuizScore, getQuizAttempts, submitQuizAttempt } from '@/services/quizzes'
 import { materialIconFor } from '@/lib/materials'
@@ -34,6 +34,17 @@ export default function QuizTaker({ quiz, onPassed, xpReward, coinsReward, mater
             // history is best-effort; the graded result is already shown
         }
     }
+
+    // Load this quiz's own real history on mount - previously this only ran
+    // after a fresh submit, so "Recent Attempts"/"Best" stayed blank (not
+    // wrong, just empty) for a quiz you'd genuinely attempted in an earlier
+    // session, until you submitted it again. The parent now also remounts
+    // this component per quiz (key={quiz.id}) so this effect can't pick up
+    // a previous quiz's stale history either.
+    useEffect(() => {
+        refreshAttempts()
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [quiz?.id])
 
     async function handleSubmit() {
         if (!allAnswered || submitting) return

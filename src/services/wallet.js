@@ -138,16 +138,21 @@ export async function awardLessonComplete(lessonId) {
         }
     }
 
+    // Active XP boost (see activateXpBoost below) doubles the lesson's XP -
+    // coins and materials are unaffected, only XP is boosted.
+    const boosted = !!profile.xp_boost_until && new Date(profile.xp_boost_until) > new Date()
+    const awardedXp = (lesson.xp_reward ?? 0) * (boosted ? 2 : 1)
+
     const { error: ledgerError } = await supabase.from('xp_ledger').insert({
         user_id: user.id,
         kind: 'lesson_complete',
         ref_lesson_id: lessonId,
-        xp: lesson.xp_reward,
+        xp: awardedXp,
         coins: lesson.coins_reward
     })
     if (ledgerError) throw ledgerError
 
-    const xp_total = (profile.xp_total ?? 0) + (lesson.xp_reward ?? 0)
+    const xp_total = (profile.xp_total ?? 0) + awardedXp
     const coins_total = (profile.coins ?? 0) + (lesson.coins_reward ?? 0)
     const { error: profileError } = await supabase
         .from('profiles')
@@ -169,14 +174,27 @@ export async function awardLessonComplete(lessonId) {
     notifyInventoryChanged()
     return {
         awarded: true,
-        xp: lesson.xp_reward,
+        xp: awardedXp,
         coins: lesson.coins_reward,
         xp_total,
         coins_total,
         material_name: lesson.material_name,
         material_qty: lesson.material_qty,
-        material_column
+        material_column,
+        boosted
     }
+}
+
+/**
+ * Spend one XP-boost charge to start a 1-hour 2x-XP window on lesson
+ * completions. Non-throwing { ok, ... } shape for the expected "no charges
+ * left" case, matching the Shop's buy_shop_item convention.
+ */
+export async function activateXpBoost() {
+    const { data, error } = await supabase.rpc('activate_xp_boost')
+    if (error) throw error
+    if (data?.ok) notifyWalletChanged()
+    return data
 }
 
 /**

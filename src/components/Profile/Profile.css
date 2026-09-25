@@ -10,9 +10,20 @@
   padding: 25px 15px 60px;
   background: #effaf4;
   margin-top: 40px;
-  margin-left: 78px;
   scroll-margin-top: 110px;
   box-sizing: border-box;
+}
+
+/* Landing page only: the page's own <main> already offsets for the fixed
+   sidebar (Tailwind ml-20), so .profile-section must not add its own
+   margin-left on top of that - and centering it in a full-viewport section
+   (like every other landing section) keeps the guest card from looking
+   small and stranded near the top of an otherwise-empty page. */
+.landing-profile-wrap .profile-section {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .profile-container {

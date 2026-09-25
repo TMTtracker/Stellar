@@ -1,11 +1,15 @@
-import { useGLTF } from '@react-three/drei'
-import { useMemo } from 'react'
+import { useGLTF, Outlines } from '@react-three/drei'
+import { useMemo, useState } from 'react'
 import * as THREE from 'three'
 
 import campModel from '../../assets/models/SM_Camp.glb'
 
-function Camp() {
+// position/rotationDeg/selected/onSelect are all optional so the marketing
+// landing page's bare <Camp /> (HeroModel.jsx) keeps working exactly as
+// before - only GameWorld's interactive usage passes them.
+function Camp({ position = [0, 0, 0], rotationDeg = 0, selected = false, onSelect }) {
     const { scene } = useGLTF(campModel)
+    const [hovered, setHovered] = useState(false)
 
     const clonedScene = useMemo(() => {
         const clone = scene.clone(true)
@@ -39,7 +43,18 @@ function Camp() {
         return clone
     }, [scene])
 
-    return <primitive object={clonedScene} />
+    return (
+        <group
+            position={position}
+            rotation={[0, THREE.MathUtils.degToRad(rotationDeg), 0]}
+            onPointerOver={onSelect ? (e) => { e.stopPropagation(); setHovered(true); document.body.style.cursor = 'pointer' } : undefined}
+            onPointerOut={onSelect ? (e) => { e.stopPropagation(); setHovered(false); document.body.style.cursor = 'auto' } : undefined}
+            onClick={onSelect ? (e) => { e.stopPropagation(); onSelect() } : undefined}
+        >
+            <primitive object={clonedScene} />
+            {(hovered || selected) && <Outlines thickness={4} color={selected ? '#2FA84F' : '#7BE495'} />}
+        </group>
+    )
 }
 
 export default Camp

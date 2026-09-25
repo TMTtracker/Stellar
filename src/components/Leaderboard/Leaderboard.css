@@ -16,6 +16,21 @@
     width: 100%;
 }
 
+/* Landing page only: the page's own <main> already offsets for the fixed
+   sidebar (Tailwind ml-20), so this must not add its own margin-left on top
+   of that - and giving it its own full-viewport section (like every other
+   landing section) keeps it from crowding straight into the section above
+   it. The authenticated /leaderboard route doesn't need any of this since
+   ProtectedLayout already handles its spacing. */
+.landing-leaderboard-wrap .leaderboard-section {
+    margin-top: 90px;
+    min-height: 100vh;
+    scroll-margin-top: 110px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
 .leaderboard-content {
     display: flex;
     flex-direction: column;

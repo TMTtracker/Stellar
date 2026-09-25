@@ -303,6 +303,7 @@ export default function LessonShow() {
                         {quiz
                             ? (
                                 <QuizTaker
+                                    key={quiz.id}
                                     quiz={quiz}
                                     onPassed={handleQuizPassed}
                                     xpReward={lesson.xp_reward}

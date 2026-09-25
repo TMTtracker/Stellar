@@ -1,18 +1,21 @@
 import { useEffect, useState } from 'react'
-import { Backpack, Trophy, Map, ShoppingBag, BookOpen, Bell, Settings, Flame, Zap, Banknote, Building2, Building, Warehouse, Lock, BrickWall, TreeDeciduous, Gem, Mountain, Pickaxe, Beaker, Lightbulb, Feather, Clock, X, Hammer, Check, User, Moon, Sun, LogOut, Minus, ListChecks, Blocks } from 'lucide-react'
+import { Backpack, Trophy, ShoppingBag, BookOpen, Bell, Settings, Flame, Zap, Banknote, Building2, Building, Warehouse, Lock, BrickWall, TreeDeciduous, Gem, Mountain, Pickaxe, Beaker, Lightbulb, Feather, Clock, X, Hammer, Check, User, Moon, Sun, LogOut, Minus, ListChecks, Blocks } from 'lucide-react'
 import ProtectedLayout from '@/components/ProtectedLayout/ProtectedLayout'
-import GameWorld from '@/components/GameWorld/GameWorld'
+import GameWorld, { BASE_MODEL_URLS } from '@/components/GameWorld/GameWorld'
+import UpgradeBaseModal from '@/components/GameWorld/UpgradeBaseModal'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 import { useWallet } from '@/hooks/useWallet'
 import { usePlayerResources } from '@/hooks/usePlayerResources'
 import { useAvatar, isImageAvatar } from '@/hooks/useAvatar'
 import { useDarkMode } from '@/hooks/useDarkMode'
+import { useStreak } from '@/hooks/useStreak'
+import { useBase } from '@/hooks/useBase'
 import { listBuildMenu, listMyUnlockedBuildings, buildStructure, buyMissingMaterials, placeNewBuilding, RESOURCES_EVENT } from '@/services/resources'
+import { listBaseLevels } from '@/services/base'
 import { listDailyLessons } from '@/services/lessons'
+import { activateXpBoost } from '@/services/wallet'
 import { DollarSign } from 'lucide-react'
-
-const streak = 9
 
 const materialIconMap = {
     'bricks': BrickWall,
@@ -41,7 +44,6 @@ const nav = [
     { id: 'shop', label: 'Shop', icon: ShoppingBag, to: '/shop' },
     { id: 'inventory', label: 'Inventory', icon: Backpack, to: null },
     { id: 'your-builds', label: 'Your Builds', icon: Hammer, to: null },
-    { id: 'world-map', label: 'World map', icon: Map, to: '/' },
     { id: 'profile', label: 'Profile', icon: User, to: '/profile' }
 ]
 
@@ -73,10 +75,10 @@ const MATERIAL_FIELDS = [
 
 const consumables = [
     {
+        id: 'xp-boost',
         icon: Clock,
         iconColor: 'text-[#E8933E]',
-        name: 'XP boost (2x, 1 hour)',
-        count: 3
+        name: 'XP boost (2x, 1 hour)'
     }
 ]
 
@@ -86,10 +88,12 @@ export default function Dashboard() {
     const [showYourBuilds, setShowYourBuilds] = useState(false)
     const [settingsOpen, setSettingsOpen] = useState(false)
     const { user, signOut } = useAuth()
-    const { coins, level, pct } = useWallet()
+    const { coins, level, pct, xpBoostCharges, xpBoostUntil } = useWallet()
     const resources = usePlayerResources()
     const { avatar } = useAvatar()
     const { dark, toggle: toggleDarkMode } = useDarkMode()
+    const { streak, nextXp, nextIsMilestone, daysToMilestone } = useStreak()
+    const base = useBase()
     const avatarIsImage = isImageAvatar(avatar)
     const [buildMenu, setBuildMenu] = useState([])
     const [unlockedBuildings, setUnlockedBuildings] = useState([])
@@ -97,6 +101,10 @@ export default function Dashboard() {
     const [dailyLessons, setDailyLessons] = useState([])
     const [dailyLoading, setDailyLoading] = useState(true)
     const [dailyError, setDailyError] = useState('')
+    const [usingBoost, setUsingBoost] = useState(false)
+    const [boostNowTick, setBoostNowTick] = useState(() => Date.now())
+    const [baseLevels, setBaseLevels] = useState([])
+    const [showUpgradeBase, setShowUpgradeBase] = useState(false)
     const [showDailyLessons, setShowDailyLessons] = useState(true)
     const [showBuildMenuPanel, setShowBuildMenuPanel] = useState(true)
 
@@ -105,10 +113,45 @@ export default function Dashboard() {
     const totalMaterialCount = MATERIAL_FIELDS.reduce((sum, f) => sum + (resources[f.key] ?? 0), 0)
     const unlockedIds = new Set(unlockedBuildings.map(b => b.build_id))
 
+    // Base upgrade: the catalog only has rows for levels that are actually
+    // configured (currently just 2), so anything past that - or past the
+    // hard level-6 cap - simply has no next level to offer yet.
+    const nextBaseLevelNum = (base.base_level ?? 1) + 1
+    const nextBaseLevelInfo = nextBaseLevelNum <= 6 ? baseLevels.find(l => l.level === nextBaseLevelNum) : null
+    const baseLevelMet = nextBaseLevelInfo ? level >= (nextBaseLevelInfo.unlock_level ?? 1) : false
+    const baseRequirements = nextBaseLevelInfo
+        ? MATERIAL_FIELDS
+            .map(f => ({ key: f.key, required: nextBaseLevelInfo[f.required] ?? 0, have: resources[f.key] ?? 0 }))
+            .filter(f => f.required > 0)
+        : []
+    const baseMaterialsHave = baseRequirements.reduce((sum, f) => sum + Math.min(f.have, f.required), 0)
+    const baseMaterialsNeeded = baseRequirements.reduce((sum, f) => sum + f.required, 0)
+    const baseReadyPct = !nextBaseLevelInfo
+        ? 100
+        : !baseLevelMet
+            ? 0
+            : baseMaterialsNeeded > 0
+                ? Math.round((baseMaterialsHave / baseMaterialsNeeded) * 100)
+                : 100
+    const baseReady = !!nextBaseLevelInfo && baseLevelMet && baseMaterialsHave >= baseMaterialsNeeded
+    const baseLabel = nextBaseLevelInfo
+        ? `Level ${base.base_level ?? 1} Base · ${baseReadyPct}% Ready`
+        : `Level ${base.base_level ?? 1} Base · Max`
+
     useEffect(() => {
         let cancelled = false
         listBuildMenu().then(rows => {
             if (!cancelled) setBuildMenu(rows)
+        })
+        return () => {
+            cancelled = true
+        }
+    }, [])
+
+    useEffect(() => {
+        let cancelled = false
+        listBaseLevels().then(rows => {
+            if (!cancelled) setBaseLevels(rows)
         })
         return () => {
             cancelled = true
@@ -140,6 +183,41 @@ export default function Dashboard() {
         window.addEventListener(RESOURCES_EVENT, loadUnlocked)
         return () => window.removeEventListener(RESOURCES_EVENT, loadUnlocked)
     }, [])
+
+    // Ticks once a second while a boost is running so the countdown pill
+    // updates live, and stops itself once the boost has actually expired.
+    useEffect(() => {
+        if (!xpBoostUntil) return
+        const endMs = new Date(xpBoostUntil).getTime()
+        const id = setInterval(() => {
+            const nowMs = Date.now()
+            setBoostNowTick(nowMs)
+            if (nowMs >= endMs) clearInterval(id)
+        }, 1000)
+        return () => clearInterval(id)
+    }, [xpBoostUntil])
+
+    const boostEndMs = xpBoostUntil ? new Date(xpBoostUntil).getTime() : 0
+    const boostActive = boostEndMs > boostNowTick
+    const boostRemainingLabel = (() => {
+        if (!boostActive) return null
+        const totalSec = Math.max(0, Math.ceil((boostEndMs - boostNowTick) / 1000))
+        const m = Math.floor(totalSec / 60)
+        const s = totalSec % 60
+        return `${m}:${String(s).padStart(2, '0')}`
+    })()
+
+    async function handleUseXpBoost() {
+        if (usingBoost || boostActive || xpBoostCharges <= 0) return
+        setUsingBoost(true)
+        try {
+            await activateXpBoost()
+        } catch (e) {
+            console.error('[dashboard] xp boost activation failed:', e.message)
+        } finally {
+            setUsingBoost(false)
+        }
+    }
 
     // Panel stays open after "Use" - an unlocked type can be placed as
     // many times as you want, so closing on every click would just add
@@ -173,25 +251,64 @@ export default function Dashboard() {
                 </div>
 
                 {/* Top-left: profile chip + streak — links to /profile */}
-                <button
-                    onClick={() => navigate('/profile')}
-                    className='absolute top-4 left-4 flex items-center gap-2.5 bg-white/95 dark:bg-[#14171A]/95 border border-[#C9DDC4] dark:border-[#262E28] rounded-xl px-3 py-2 shadow-sm hover:border-[#A9D8AE] hover:bg-white dark:hover:bg-[#1B1F22] transition-colors text-left'
-                    aria-label="View profile"
-                >
-                    <div className='w-9 h-9 rounded-full bg-[#141814] text-white flex items-center justify-center text-xs font-bold overflow-hidden'>
-                        {avatarIsImage ? <img src={avatar} alt="Profile avatar" className="w-full h-full object-cover rounded-full" /> : avatar ? <span className="text-base leading-none">{avatar}</span> : initials}
-                    </div>
-                    <div>
-                        <div className='text-sm font-bold leading-none'>{displayName} · Lv {level}</div>
-                        <div className='w-28 h-1.5 rounded-full bg-[#EAF2E6] dark:bg-[#232A24] mt-2 overflow-hidden'>
-                            <div className='h-full bg-[#A9D8AE] rounded-full' style={{ width: `${pct}%` }} />
+                <div className='absolute top-4 left-4 flex items-center gap-2'>
+                    <button
+                        onClick={() => navigate('/profile')}
+                        className='flex items-center gap-2.5 bg-white/95 dark:bg-[#14171A]/95 border border-[#C9DDC4] dark:border-[#262E28] rounded-xl px-3 py-2 shadow-sm hover:border-[#A9D8AE] hover:bg-white dark:hover:bg-[#1B1F22] transition-colors text-left'
+                        aria-label="View profile"
+                    >
+                        <div className='w-9 h-9 rounded-full bg-[#141814] text-white flex items-center justify-center text-xs font-bold overflow-hidden'>
+                            {avatarIsImage ? <img src={avatar} alt="Profile avatar" className="w-full h-full object-cover rounded-full" /> : avatar ? <span className="text-base leading-none">{avatar}</span> : initials}
                         </div>
+                        <div>
+                            <div className='text-sm font-bold leading-none'>{displayName} · Lv {level}</div>
+                            <div className='w-28 h-1.5 rounded-full bg-[#EAF2E6] dark:bg-[#232A24] mt-2 overflow-hidden'>
+                                <div className='h-full bg-[#A9D8AE] rounded-full' style={{ width: `${pct}%` }} />
+                            </div>
+                        </div>
+                        <div className='flex items-center gap-1.5 text-sm font-bold text-[#E8933E] border-l border-[#C9DDC4] dark:border-[#262E28] pl-2.5 ml-0.5'>
+                            <Flame size={15} fill='currentColor' />
+                            {streak} Days Streak
+                        </div>
+                    </button>
+
+                    {/* Forecast: what tomorrow's login is worth, so the streak
+                        actually motivates coming back instead of just being a
+                        number. Same footprint as the streak segment above. */}
+                    <div
+                        className={`flex items-center gap-1.5 text-sm font-bold rounded-xl px-3 py-2 shadow-sm border ${
+                            nextIsMilestone
+                                ? 'bg-[#F1EEFB] dark:bg-[#241E33] border-[#C9BEEF] dark:border-[#3A2E52] text-[#6B5BA6] dark:text-[#B9A8E8]'
+                                : 'bg-white/95 dark:bg-[#14171A]/95 border-[#C9DDC4] dark:border-[#262E28] text-[#E8933E]'
+                        }`}
+                        title='Keep your streak alive to earn this tomorrow'
+                    >
+                        {nextIsMilestone ? (
+                            <>
+                                <Gem size={15} /> +5 gems &amp; {nextXp} XP tomorrow!
+                            </>
+                        ) : daysToMilestone <= 3 ? (
+                            <>
+                                <Flame size={15} /> {daysToMilestone}d to +5 gems — keep going!
+                            </>
+                        ) : (
+                            <>
+                                <Zap size={15} className='text-[#A9D8AE]' /> +{nextXp} XP tomorrow
+                            </>
+                        )}
                     </div>
-                    <div className='flex items-center gap-1.5 text-sm font-bold text-[#E8933E] border-l border-[#C9DDC4] dark:border-[#262E28] pl-2.5 ml-0.5'>
-                        <Flame size={15} fill='currentColor' />
-                        {streak} Days Streak
-                    </div>
-                </button>
+
+                    {/* XP boost countdown - only shown while a boost is running,
+                        ticks live and disappears the moment it expires. */}
+                    {boostActive && (
+                        <div
+                            className='flex items-center gap-1.5 text-sm font-bold rounded-xl px-3 py-2 shadow-sm border bg-[#FBF0D9] dark:bg-[#2A2417] border-[#E8933E]/40 text-[#8A6D2B] dark:text-[#E3BE72]'
+                            title='2x XP boost active'
+                        >
+                            <Clock size={15} /> 2x XP · {boostRemainingLabel}
+                        </div>
+                    )}
+                </div>
 
                 {/* Top-left: Daily lessons panel - minimizes to a small icon so the
                     game world underneath stays visible when not needed. */}
@@ -330,13 +447,28 @@ export default function Dashboard() {
                     <span className='w-6 h-6 rounded-md bg-[#DDF0E1] dark:bg-[#1E2B20] text-[#A9D8AE] flex items-center justify-center'>
                         <Building2 size={14} />
                     </span>
-                    <span className='text-sm font-bold flex items-center gap-2'>
-                        Level 2 Base · 100% Ready
-                        <button aria-label='Settings' className='p-2 bg-[#8dc26d] hover:bg-[#A9D8AE] transition-colors text-xs text-white font-semibold rounded-full'>
-                            Upgrade
-                        </button>
+                    <span className='text-sm font-bold flex items-center gap-2 text-[#1F2225] dark:text-[#F2F5F0]'>
+                        {baseLabel}
+                        {nextBaseLevelInfo && (
+                            <button
+                                onClick={() => setShowUpgradeBase(true)}
+                                className={`px-3 py-1.5 transition-colors text-xs font-semibold rounded-full ${baseReady ? 'bg-[#8dc26d] hover:bg-[#A9D8AE] text-white' : 'bg-[#EFF3EE] dark:bg-[#1B211C] text-[#6A6F73] dark:text-[#8FA893] hover:bg-[#DDF0E1] dark:hover:bg-[#1E2B20]'}`}
+                            >
+                                Upgrade
+                            </button>
+                        )}
                     </span>
                 </div>
+
+                {showUpgradeBase && nextBaseLevelInfo && (
+                    <UpgradeBaseModal
+                        levelInfo={nextBaseLevelInfo}
+                        modelUrl={BASE_MODEL_URLS[nextBaseLevelNum]}
+                        resources={resources}
+                        accountLevel={level}
+                        onClose={() => setShowUpgradeBase(false)}
+                    />
+                )}
 
                 {/* Bottom-left: minimap */}
                 <div className='absolute bottom-4 left-4  bg-white/95 dark:bg-[#14171A]/95 border border-[#C9DDC4] dark:border-[#262E28] rounded-xl flex flex-col items-center justify-center gap-1 shadow-sm hover:border-[#A9D8AE] transition-colors'>
@@ -396,8 +528,14 @@ export default function Dashboard() {
                                                 {item.name}
                                             </div>
                                             <div className='flex items-center gap-2 text-[12px] text-[#6A6F73] dark:text-[#8FA893]'>
-                                                <span>x{item.count}</span>
-                                                <button className='rounded-full border border-[#C9DDC4] dark:border-[#262E28] px-2.5 py-1 text-[11px] hover:border-[#A9D8AE] hover:text-[#1F2225] dark:hover:text-[#EAF3E7]'>Use</button>
+                                                <span>x{xpBoostCharges}</span>
+                                                <button
+                                                    onClick={handleUseXpBoost}
+                                                    disabled={usingBoost || boostActive || xpBoostCharges <= 0}
+                                                    className='rounded-full border border-[#C9DDC4] dark:border-[#262E28] px-2.5 py-1 text-[11px] hover:border-[#A9D8AE] hover:text-[#1F2225] dark:hover:text-[#EAF3E7] disabled:opacity-50 disabled:cursor-not-allowed'
+                                                >
+                                                    {boostActive ? 'Active' : usingBoost ? 'Using…' : 'Use'}
+                                                </button>
                                             </div>
                                         </div>
                                     )
