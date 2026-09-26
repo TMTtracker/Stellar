@@ -10,6 +10,29 @@ import { Outlet, Route, Routes } from "react-router-dom";
 import CourseShow from "@/Pages/Courses/show";
 import LessonShow from "@/Pages/Lessons/show";
 import RequireAuth from "@/components/RequireAuth";
+import { lazy, Suspense } from "react";
+
+// Instructor pages pull in the rich-text editor + pdf.js - load on demand
+// so students never download them.
+const InstructorDashboard = lazy(() => import("@/Pages/Instructor"));
+const CourseEditor = lazy(() => import("@/Pages/Instructor/CourseEditor"));
+const CoursePreview = lazy(() => import("@/Pages/Instructor/CoursePreview"));
+
+function InstructorRoute() {
+  return (
+    <RequireAuth role="instructor">
+      <Suspense
+        fallback={
+          <div className="min-h-screen flex items-center justify-center bg-[#DCEFD6] text-[#1F2225]">
+            <p className="text-sm font-medium animate-pulse">Opening Instructor Studio...</p>
+          </div>
+        }
+      >
+        <Outlet />
+      </Suspense>
+    </RequireAuth>
+  );
+}
 
 function App() {
   return (
@@ -19,11 +42,17 @@ function App() {
       <Route
         path="/dashboard"
         element={
-          <RequireAuth>
+          <RequireAuth role="student">
             <Dashboard />
           </RequireAuth>
         }
       />
+      <Route path="/instructor" element={<InstructorRoute />}>
+        <Route index element={<InstructorDashboard />} />
+        <Route path="courses/new" element={<CourseEditor />} />
+        <Route path="courses/:courseId/edit" element={<CourseEditor />} />
+        <Route path="courses/:courseId/preview" element={<CoursePreview />} />
+      </Route>
       <Route
         path="/courses"
         element={

@@ -19,7 +19,7 @@ const bottomNavItems = [
 function ProtectedLayout({ children }) {
     const location = useLocation()
     const navigate = useNavigate()
-    const { user, signOut } = useAuth()
+    const { user, signOut, isInstructor } = useAuth()
     const { xp, coins } = useWallet()
     const { avatar } = useAvatar()
 
@@ -48,7 +48,7 @@ function ProtectedLayout({ children }) {
             {!isDashboard && (
                 <nav className='w-16 shrink-0 h-screen overflow-y-auto bg-[#DCEFD6] dark:bg-[#0E1210] border-r border-[#C9DDC4] dark:border-[#20291F] flex flex-col items-center py-6 gap-2 justify-between'>
                     <div className='flex flex-col items-center gap-2 w-full'>
-                        <Link to='/dashboard' className='w-9 h-9 rounded-md bg-[#141814] flex items-center justify-center mb-6'>
+                        <Link to={isInstructor ? '/instructor' : '/dashboard'} title={isInstructor ? 'Back to Instructor Studio' : undefined} className='w-9 h-9 rounded-md bg-[#141814] flex items-center justify-center mb-6'>
                             <span className='text-white text-xs font-bold'>{'</>'}</span>
                         </Link>
 

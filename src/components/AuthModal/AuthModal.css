@@ -226,3 +226,42 @@
     border-radius: 20px;
   }
 }
+.authmodal-role {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 999px;
+  background: #f1f5f0;
+  margin-bottom: 4px;
+}
+
+.authmodal-role-option {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: none;
+  border-radius: 999px;
+  padding: 9px 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #6b7280;
+  background: transparent;
+  cursor: pointer;
+  transition: background 150ms, color 150ms, box-shadow 150ms;
+}
+
+.authmodal-role-option:hover {
+  color: #1f2422;
+}
+
+.authmodal-role-option.is-active {
+  background: #ffffff;
+  color: #1f2422;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.authmodal-role-option.is-active svg {
+  color: #5fa85c;
+}

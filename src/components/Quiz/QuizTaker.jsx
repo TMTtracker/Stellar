@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Check, Lock, RotateCcw, Trophy, X, Zap, Coins } from 'lucide-react'
-import { getBestQuizScore, getQuizAttempts, submitQuizAttempt } from '@/services/quizzes'
+import { getBestQuizScore, getQuizAttempts, gradeQuiz, submitQuizAttempt } from '@/services/quizzes'
 import { materialIconFor } from '@/lib/materials'
 
 const LETTERS = ['A', 'B', 'C', 'D', 'E', 'F']
 
-export default function QuizTaker({ quiz, onPassed, xpReward, coinsReward, materialName, materialQty }) {
+// `preview`: instructor view - graded locally, nothing saved, no rewards.
+export default function QuizTaker({ quiz, onPassed, xpReward, coinsReward, materialName, materialQty, preview = false }) {
     const questions = useMemo(() => quiz?.questions ?? [], [quiz])
     const [answers, setAnswers] = useState({})
     const [result, setResult] = useState(null)
@@ -23,6 +24,7 @@ export default function QuizTaker({ quiz, onPassed, xpReward, coinsReward, mater
     }
 
     async function refreshAttempts() {
+        if (preview) return
         try {
             const [list, bestScore] = await Promise.all([
                 getQuizAttempts(quiz.id, { limit: 5 }),
@@ -51,10 +53,10 @@ export default function QuizTaker({ quiz, onPassed, xpReward, coinsReward, mater
         setSubmitting(true)
         setError('')
         try {
-            const res = await submitQuizAttempt({ quiz, answers })
+            const res = preview ? gradeQuiz({ quiz, answers }) : await submitQuizAttempt({ quiz, answers })
             setResult(res)
             await refreshAttempts()
-            if (res.passed) onPassed?.()
+            if (res.passed && !preview) onPassed?.()
         } catch (e) {
             setError(e.message ?? 'Failed to submit quiz')
         } finally {
@@ -115,7 +117,9 @@ export default function QuizTaker({ quiz, onPassed, xpReward, coinsReward, mater
                         <div>
                             <p className='font-bold text-[#1F2225] dark:text-[#F2F5F0]'>{result.passed ? 'Passed — nice work!' : 'Not quite — try again'}</p>
                             <p className='text-xs text-[#6A6F73] dark:text-[#8FA893] mt-0.5'>
-                                {result.passed
+                                {preview
+                                    ? `Preview only — nothing was saved. ${result.passed ? 'A student would pass and complete this lesson.' : `Students need ${quiz.passing_score ?? 70}% to pass.`}`
+                                    : result.passed
                                     ? 'Lesson marked complete. Your attempt was saved.'
                                     : `You need ${quiz.passing_score ?? 70}% to pass. Review the explanations below.`}
                             </p>
