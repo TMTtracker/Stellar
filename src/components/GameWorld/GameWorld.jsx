@@ -1,17 +1,31 @@
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Canvas } from "@react-three/fiber"
-import { OrbitControls, Grid } from "@react-three/drei"
+import { OrbitControls, Grid, Sparkles } from "@react-three/drei"
 import { ArrowUp, ArrowDown, ArrowLeft, ArrowRight, RotateCw, Trash2 } from "lucide-react"
 import Camp from "../HeroModel/Camp"
 import { Building, GrassField, Tree } from "./WorldProps"
-import WindMill from "./WindMill"
+import BuildingModel from "./BuildingModel"
 import { listMyBuildings, moveBuilding, rotateBuilding, removeBuilding, RESOURCES_EVENT } from "@/services/resources"
+import { getMyBase, moveBase, rotateBase, BASE_EVENT } from "@/services/base"
 
-// Which 3D model represents each build_menu id - only data_structures_hall
-// has one so far (a test of the placement pipeline); any other build_id
-// simply doesn't render anything yet.
-const BUILDING_MODELS = {
-    data_structures_hall: WindMill
+import windMillModel from "../../assets/models/SM_Wind_mill.glb"
+import waterWellModel from "../../assets/models/SM_Water_Well.glb"
+import workspaceModel from "../../assets/models/SM_WorkSpace.glb"
+import houseModel from "../../assets/models/SM_house.glb"
+
+// Which .glb model represents each build_menu id - any build_id not
+// listed here simply doesn't render anything yet.
+const BUILDING_MODEL_URLS = {
+    data_structures_hall: windMillModel,
+    algorithms_tower: waterWellModel,
+    interview_prep_dojo: workspaceModel
+}
+
+// Which .glb model represents each base level (level 1 has no entry - it's
+// always the hand-tuned <Camp/>, not a generic loaded model). Exported so
+// Dashboard's upgrade modal can preview the same model.
+export const BASE_MODEL_URLS = {
+    2: houseModel
 }
 
 // Placed buildings get spread out relative to this origin. Grid
@@ -23,6 +37,11 @@ const BUILDING_MODELS = {
 const PLACEMENT_ORIGIN = [4, 0, -6]
 const MOVE_STEP = 4
 
+// The base itself lives at its own origin (the camp's traditional spot),
+// independent of PLACEMENT_ORIGIN which is only for other buildings.
+const BASE_ORIGIN = [0, 0, 0]
+const BASE_SELECTED_ID = 'base'
+
 function toWorldPosition(b) {
     return [
         PLACEMENT_ORIGIN[0] + (b.pos_x ?? 0) * MOVE_STEP,
@@ -31,10 +50,24 @@ function toWorldPosition(b) {
     ]
 }
 
-function GameWorld() {
+function toBaseWorldPosition(b) {
+    return [
+        BASE_ORIGIN[0] + (b.pos_x ?? 0) * MOVE_STEP,
+        0,
+        BASE_ORIGIN[2] + (b.pos_y ?? 0) * MOVE_STEP
+    ]
+}
+
+function GameWorld({ dark = false }) {
     const [buildings, setBuildings] = useState([])
+    // Defaults match a brand-new player's row exactly, so the camp renders
+    // in the right spot immediately instead of popping in once the fetch
+    // resolves.
+    const [base, setBase] = useState({ base_level: 1, pos_x: 0, pos_y: 0, rotation: 0 })
     const [selectedId, setSelectedId] = useState(null)
     const [busy, setBusy] = useState(false)
+    const [showUpgradeEffect, setShowUpgradeEffect] = useState(false)
+    const prevBaseLevel = useRef(null)
 
     useEffect(() => {
         function load() {
@@ -45,13 +78,39 @@ function GameWorld() {
         return () => window.removeEventListener(RESOURCES_EVENT, load)
     }, [])
 
-    const selected = buildings.find(b => b.id === selectedId) ?? null
+    useEffect(() => {
+        function loadBase() {
+            getMyBase().then(row => {
+                setBase(row)
+                // Skip the very first load (prevBaseLevel still null) - the
+                // sparkle burst is only for an actual upgrade just now, not
+                // for simply opening/reloading the page on an existing base.
+                if (prevBaseLevel.current != null && row.base_level > prevBaseLevel.current) {
+                    setShowUpgradeEffect(true)
+                    setTimeout(() => setShowUpgradeEffect(false), 2500)
+                }
+                prevBaseLevel.current = row.base_level
+            }).catch(() => {})
+        }
+        loadBase()
+        window.addEventListener(BASE_EVENT, loadBase)
+        return () => window.removeEventListener(BASE_EVENT, loadBase)
+    }, [])
+
+    const isBaseSelected = selectedId === BASE_SELECTED_ID
+    const selected = isBaseSelected ? base : (buildings.find(b => b.id === selectedId) ?? null)
 
     async function handleMove(dx, dy) {
         if (!selected || busy) return
         setBusy(true)
         try {
-            await moveBuilding(selected.id, { pos_x: (selected.pos_x ?? 0) + dx, pos_y: (selected.pos_y ?? 0) + dy })
+            const pos_x = (selected.pos_x ?? 0) + dx
+            const pos_y = (selected.pos_y ?? 0) + dy
+            if (isBaseSelected) {
+                await moveBase({ pos_x, pos_y })
+            } else {
+                await moveBuilding(selected.id, { pos_x, pos_y })
+            }
         } catch (e) {
             console.error('[gameworld] move failed:', e.message)
         } finally {
@@ -63,7 +122,12 @@ function GameWorld() {
         if (!selected || busy) return
         setBusy(true)
         try {
-            await rotateBuilding(selected.id, ((selected.rotation ?? 0) + 90) % 360)
+            const rotation = ((selected.rotation ?? 0) + 90) % 360
+            if (isBaseSelected) {
+                await rotateBase(rotation)
+            } else {
+                await rotateBuilding(selected.id, rotation)
+            }
         } catch (e) {
             console.error('[gameworld] rotate failed:', e.message)
         } finally {
@@ -72,7 +136,7 @@ function GameWorld() {
     }
 
     async function handleRemove() {
-        if (!selected || busy) return
+        if (!selected || busy || isBaseSelected) return
         setBusy(true)
         try {
             await removeBuilding(selected.id)
@@ -85,7 +149,7 @@ function GameWorld() {
     }
 
     return (
-        <div className='w-full h-full bg-[#effaf4]'>
+        <div className={`w-full h-full ${dark ? 'bg-[#0A0D1C]' : 'bg-[#effaf4]'}`}>
             <Canvas
                 shadows
                 orthographic
@@ -100,9 +164,12 @@ function GameWorld() {
                 }}
                 onPointerMissed={() => setSelectedId(null)}
             >
-                <color attach='background' args={['#effaf4']} />
+                {/* Night mode swaps only the lighting rig + background/fog to a
+                    dim, cool moonlit look - no model or material changes. */}
+                <color attach='background' args={[dark ? '#0A0D1C' : '#effaf4']} />
+                {dark && <fog attach='fog' args={['#0A0D1C', 25, 95]} />}
 
-                <ambientLight intensity={1.8} />
+                <ambientLight intensity={dark ? 0.32 : 1.8} color={dark ? '#4A5AA8' : '#ffffff'} />
                 <directionalLight
                     ref={(l) => {
                         if (l) {
@@ -118,9 +185,14 @@ function GameWorld() {
                             l.shadow.bias = 0.0005
                         }
                     }}
-                    position={[10, 20, 10]}
-                    intensity={1.8}
+                    position={dark ? [-14, 24, 8] : [10, 20, 10]}
+                    intensity={dark ? 0.85 : 1.8}
+                    color={dark ? '#AEBBFF' : '#ffffff'}
                 />
+                {/* Faint warm rim/fill so the night scene isn't purely cold blue -
+                    mirrors the lantern-glow feel of the reference without adding
+                    a light source tied to any specific model. */}
+                {dark && <hemisphereLight args={['#3A4A8A', '#0A0D1C', 0.25]} />}
 
                 {/* Green ground */}
                 <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.01, 0]} receiveShadow>
@@ -141,7 +213,37 @@ function GameWorld() {
                     infiniteGrid={false}
                 />
 
-                <Camp />
+                {/* Home base - level 1 is always the hand-tuned camp; levels
+                    2+ swap in the matching upgraded model. Selectable/movable
+                    with the same tool as any other building (just never
+                    removable). */}
+                {base && (base.base_level <= 1 || !BASE_MODEL_URLS[base.base_level] ? (
+                    <Camp
+                        position={toBaseWorldPosition(base)}
+                        rotationDeg={base.rotation ?? 0}
+                        selected={isBaseSelected}
+                        onSelect={() => setSelectedId(BASE_SELECTED_ID)}
+                    />
+                ) : (
+                    <BuildingModel
+                        modelUrl={BASE_MODEL_URLS[base.base_level]}
+                        position={toBaseWorldPosition(base)}
+                        rotationDeg={base.rotation ?? 0}
+                        selected={isBaseSelected}
+                        onSelect={() => setSelectedId(BASE_SELECTED_ID)}
+                    />
+                ))}
+
+                {showUpgradeEffect && base && (
+                    <Sparkles
+                        position={toBaseWorldPosition(base)}
+                        count={80}
+                        scale={6}
+                        size={6}
+                        speed={0.6}
+                        color='#A9D8AE'
+                    />
+                )}
 
                 {/* Grass field */}
                 <GrassField size={44} count={500} color="#5aa353" />
@@ -163,11 +265,12 @@ function GameWorld() {
 
                 {/* Player-placed buildings from user_building_positions */}
                 {buildings.map(b => {
-                    const Model = BUILDING_MODELS[b.build_id]
-                    if (!Model) return null
+                    const modelUrl = BUILDING_MODEL_URLS[b.build_id]
+                    if (!modelUrl) return null
                     return (
-                        <Model
+                        <BuildingModel
                             key={b.id}
+                            modelUrl={modelUrl}
                             position={toWorldPosition(b)}
                             rotationDeg={b.rotation ?? 0}
                             selected={b.id === selectedId}
@@ -190,12 +293,12 @@ function GameWorld() {
             {/* Selected-building toolbar - front/back = -Z/+Z, left/right = -X/+X,
                 each move/rotate snaps by exactly one grid step. */}
             {selected && (
-                <div className='absolute bottom-24 left-1/2 -translate-x-1/2 flex items-center gap-1.5 bg-white/95 border border-[#C9DDC4] rounded-2xl px-2 py-1.5 shadow-sm z-30'>
+                <div className='absolute bottom-24 left-1/2 -translate-x-1/2 flex items-center gap-1.5 bg-white/95 dark:bg-[#14171A]/95 border border-[#C9DDC4] dark:border-[#262E28] rounded-2xl px-2 py-1.5 shadow-sm z-30'>
                     <button
                         aria-label='Move front'
                         disabled={busy}
                         onClick={() => handleMove(0, -1)}
-                        className='w-9 h-9 flex items-center justify-center rounded-lg text-[#6A6F73] hover:bg-[#DDF0E1] hover:text-[#1F2225] disabled:opacity-50'
+                        className='w-9 h-9 flex items-center justify-center rounded-lg text-[#6A6F73] dark:text-[#8FA893] hover:bg-[#DDF0E1] dark:hover:bg-[#1E2B20] hover:text-[#1F2225] dark:hover:text-[#EAF3E7] disabled:opacity-50'
                     >
                         <ArrowUp size={17} />
                     </button>
@@ -203,7 +306,7 @@ function GameWorld() {
                         aria-label='Move back'
                         disabled={busy}
                         onClick={() => handleMove(0, 1)}
-                        className='w-9 h-9 flex items-center justify-center rounded-lg text-[#6A6F73] hover:bg-[#DDF0E1] hover:text-[#1F2225] disabled:opacity-50'
+                        className='w-9 h-9 flex items-center justify-center rounded-lg text-[#6A6F73] dark:text-[#8FA893] hover:bg-[#DDF0E1] dark:hover:bg-[#1E2B20] hover:text-[#1F2225] dark:hover:text-[#EAF3E7] disabled:opacity-50'
                     >
                         <ArrowDown size={17} />
                     </button>
@@ -211,7 +314,7 @@ function GameWorld() {
                         aria-label='Move left'
                         disabled={busy}
                         onClick={() => handleMove(-1, 0)}
-                        className='w-9 h-9 flex items-center justify-center rounded-lg text-[#6A6F73] hover:bg-[#DDF0E1] hover:text-[#1F2225] disabled:opacity-50'
+                        className='w-9 h-9 flex items-center justify-center rounded-lg text-[#6A6F73] dark:text-[#8FA893] hover:bg-[#DDF0E1] dark:hover:bg-[#1E2B20] hover:text-[#1F2225] dark:hover:text-[#EAF3E7] disabled:opacity-50'
                     >
                         <ArrowLeft size={17} />
                     </button>
@@ -219,28 +322,32 @@ function GameWorld() {
                         aria-label='Move right'
                         disabled={busy}
                         onClick={() => handleMove(1, 0)}
-                        className='w-9 h-9 flex items-center justify-center rounded-lg text-[#6A6F73] hover:bg-[#DDF0E1] hover:text-[#1F2225] disabled:opacity-50'
+                        className='w-9 h-9 flex items-center justify-center rounded-lg text-[#6A6F73] dark:text-[#8FA893] hover:bg-[#DDF0E1] dark:hover:bg-[#1E2B20] hover:text-[#1F2225] dark:hover:text-[#EAF3E7] disabled:opacity-50'
                     >
                         <ArrowRight size={17} />
                     </button>
-                    <span className='w-px h-6 bg-[#C9DDC4] mx-0.5' />
+                    <span className='w-px h-6 bg-[#C9DDC4] dark:bg-[#262E28] mx-0.5' />
                     <button
                         aria-label='Rotate 90 degrees'
                         disabled={busy}
                         onClick={handleRotate}
-                        className='w-9 h-9 flex items-center justify-center rounded-lg text-[#6A6F73] hover:bg-[#DDF0E1] hover:text-[#1F2225] disabled:opacity-50'
+                        className='w-9 h-9 flex items-center justify-center rounded-lg text-[#6A6F73] dark:text-[#8FA893] hover:bg-[#DDF0E1] dark:hover:bg-[#1E2B20] hover:text-[#1F2225] dark:hover:text-[#EAF3E7] disabled:opacity-50'
                     >
                         <RotateCw size={17} />
                     </button>
-                    <span className='w-px h-6 bg-[#C9DDC4] mx-0.5' />
-                    <button
-                        aria-label='Remove building'
-                        disabled={busy}
-                        onClick={handleRemove}
-                        className='w-9 h-9 flex items-center justify-center rounded-lg text-[#C4634F] hover:bg-[#FBF1ED] disabled:opacity-50'
-                    >
-                        <Trash2 size={17} />
-                    </button>
+                    {!isBaseSelected && (
+                        <>
+                            <span className='w-px h-6 bg-[#C9DDC4] dark:bg-[#262E28] mx-0.5' />
+                            <button
+                                aria-label='Remove building'
+                                disabled={busy}
+                                onClick={handleRemove}
+                                className='w-9 h-9 flex items-center justify-center rounded-lg text-[#C4634F] hover:bg-[#FBF1ED] dark:hover:bg-[#2A1716] disabled:opacity-50'
+                            >
+                                <Trash2 size={17} />
+                            </button>
+                        </>
+                    )}
                 </div>
             )}
         </div>

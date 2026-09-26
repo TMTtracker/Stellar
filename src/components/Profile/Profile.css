@@ -10,9 +10,20 @@
   padding: 25px 15px 60px;
   background: #effaf4;
   margin-top: 40px;
-  margin-left: 78px;
   scroll-margin-top: 110px;
   box-sizing: border-box;
+}
+
+/* Landing page only: the page's own <main> already offsets for the fixed
+   sidebar (Tailwind ml-20), so .profile-section must not add its own
+   margin-left on top of that - and centering it in a full-viewport section
+   (like every other landing section) keeps the guest card from looking
+   small and stranded near the top of an otherwise-empty page. */
+.landing-profile-wrap .profile-section {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .profile-container {
@@ -175,6 +186,10 @@
   color: #1f2225;
 }
 
+.profile-coins-badge--alt {
+  background: white;
+}
+
 .profile-logout-btn {
   display: inline-flex;
   align-items: center;
@@ -313,8 +328,13 @@
   scrollbar-color: var(--accent) transparent;
 }
 
-.profile-edit-modal::-webkit-scrollbar { width: 6px; }
-.profile-edit-modal::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 999px; }
+.profile-edit-modal::-webkit-scrollbar {
+  width: 6px;
+}
+.profile-edit-modal::-webkit-scrollbar-thumb {
+  background: var(--accent);
+  border-radius: 999px;
+}
 
 .profile-edit-close {
   position: absolute;
@@ -330,10 +350,15 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background 0.15s, color 0.15s;
+  transition:
+    background 0.15s,
+    color 0.15s;
 }
 
-.profile-edit-close:hover { background: var(--accent-bg); color: #1f2225; }
+.profile-edit-close:hover {
+  background: var(--accent-bg);
+  color: #1f2225;
+}
 
 .profile-edit-title {
   font-size: 18px;
@@ -358,7 +383,9 @@
   margin-bottom: 14px;
 }
 
-.profile-edit-section:last-of-type { margin-bottom: 0; }
+.profile-edit-section:last-of-type {
+  margin-bottom: 0;
+}
 
 .profile-edit-label {
   font-size: 11px;
@@ -393,7 +420,11 @@
   overflow: hidden;
 }
 
-.profile-edit-avatar-preview img { width: 100%; height: 100%; object-fit: cover; }
+.profile-edit-avatar-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
 
 .profile-edit-upload-btn {
   margin-top: 8px;
@@ -411,7 +442,10 @@
   transition: all 0.15s;
 }
 
-.profile-edit-upload-btn:hover { border-color: var(--accent-dark); color: #1f2225; }
+.profile-edit-upload-btn:hover {
+  border-color: var(--accent-dark);
+  color: #1f2225;
+}
 
 .profile-edit-hint {
   font-size: 11px;
@@ -421,8 +455,12 @@
   margin-top: 6px;
 }
 
-.profile-edit-field { margin-bottom: 12px; }
-.profile-edit-field:last-child { margin-bottom: 0; }
+.profile-edit-field {
+  margin-bottom: 12px;
+}
+.profile-edit-field:last-child {
+  margin-bottom: 0;
+}
 
 .profile-edit-field label {
   font-size: 11px;
@@ -436,7 +474,9 @@
   margin-bottom: 6px;
 }
 
-.profile-edit-input-wrap { position: relative; }
+.profile-edit-input-wrap {
+  position: relative;
+}
 
 .profile-edit-input-icon {
   position: absolute;
@@ -463,7 +503,9 @@
   box-sizing: border-box;
 }
 
-.profile-edit-input.has-icon { padding-left: 38px; }
+.profile-edit-input.has-icon {
+  padding-left: 38px;
+}
 
 .profile-edit-input:focus {
   border-color: var(--accent);
@@ -481,8 +523,24 @@
   margin-top: 16px;
 }
 
-@keyframes profileEditFadeIn { from { opacity: 0; } to { opacity: 1; } }
-@keyframes profileEditScaleIn { from { opacity: 0; transform: scale(0.97) translateY(6px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+@keyframes profileEditFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes profileEditScaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.97) translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
 
 .profile-save-btn {
   flex: 1;
@@ -744,6 +802,83 @@
 .profile-page .profile-section .profile-container {
   max-width: none;
   margin: 0;
+}
+
+/* Night mode - the shared vars handle most tinted backgrounds/muted text in
+   one place; hardcoded whites and near-black headings need explicit overrides. */
+.dark .profile-section {
+  --muted: #8fa893;
+  --accent-bg: #1b211c;
+  --border: #262e28;
+  background: #0e1210;
+}
+
+.dark .profile-hero,
+.dark .profile-card,
+.dark .profile-guest,
+.dark .profile-edit-modal {
+  background: #14171a;
+}
+
+.dark .profile-hero-info h2,
+.dark .profile-card h3,
+.dark .profile-stat strong,
+.dark .profile-edit-title,
+.dark .profile-history-info strong,
+.dark .profile-guest h3,
+.dark .profile-detail-row span:last-child,
+.dark .profile-edit-input,
+.dark .profile-coins-badge {
+  color: #f2f5f0;
+}
+
+.dark .profile-hero-avatar,
+.dark .profile-edit-avatar-preview,
+.dark .profile-avatar-edit {
+  border-color: #14171a;
+}
+
+.dark .profile-stat-icon,
+.dark .profile-history-icon {
+  background: #0e1210;
+}
+
+.dark .profile-coins-badge--alt {
+  background: #0e1210;
+}
+
+.dark .profile-logout-btn,
+.dark .profile-edit-upload-btn,
+.dark .profile-edit-close,
+.dark .profile-edit-input,
+.dark .profile-cancel-btn {
+  background: #0e1210;
+}
+
+.dark .profile-edit-input:disabled {
+  background: #1b211c;
+}
+
+.dark .profile-message.success {
+  background: rgba(168, 215, 159, 0.12);
+  color: #9be3a0;
+  border-color: #262e28;
+}
+
+.dark .profile-message.error {
+  background: rgba(224, 82, 82, 0.14);
+  color: #f29b9b;
+  border-color: rgba(224, 82, 82, 0.35);
+}
+
+.dark .profile-logout-btn:hover {
+  background: rgba(224, 82, 82, 0.14);
+}
+
+.dark .profile-edit-close:hover,
+.dark .profile-edit-upload-btn:hover,
+.dark .profile-cancel-btn:hover {
+  color: #f2f5f0;
 }
 
 /* Responsive */

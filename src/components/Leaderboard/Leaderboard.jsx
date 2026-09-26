@@ -1,383 +1,521 @@
-import { useEffect, useMemo, useState } from 'react';
-import { TrendingUp, TrendingDown, Star } from 'lucide-react';
-import ThreeDLeaderboard from './ThreeDLeaderboard';
-import AchievementCard from './AchievementCard';
-import CourseRow from './CourseRow';
-import DetailModal from './DetailModal';
-import { leaderboardData } from './leaderboardData';
-import { getTopProfiles } from '@/services/wallet';
-import { levelForXp, levelProgress } from '@/lib/economy';
-import { supabase } from '@/services/supabaseClient';
-import './Leaderboard.css';
+import { useEffect, useMemo, useState } from "react";
+import { TrendingUp, TrendingDown, Star } from "lucide-react";
+import ThreeDLeaderboard from "./ThreeDLeaderboard";
+import AchievementCard from "./AchievementCard";
+import CourseRow from "./CourseRow";
+import DetailModal from "./DetailModal";
+import { leaderboardData } from "./leaderboardData";
+import { getTopProfiles } from "@/services/wallet";
+import { levelForXp, levelProgress } from "@/lib/economy";
+import { supabase } from "@/services/supabaseClient";
+import ProtectedLayout from "@/components/ProtectedLayout/ProtectedLayout";
+import "./Leaderboard.css";
 
-const MEDAL_LABELS = { 1: 'rank-gold', 2: 'rank-silver', 3: 'rank-bronze' };
+const MEDAL_LABELS = { 1: "rank-gold", 2: "rank-silver", 3: "rank-bronze" };
 const ACHIEVEMENTS_VISIBLE = 2;
 const COURSES_VISIBLE = 3;
 
 function toLiveRow(p, rank) {
-    const level = levelForXp(p.xp_total ?? 0);
-    const { pct } = levelProgress(p.xp_total ?? 0);
-    return {
-        id: p.user_id,
-        rank,
-        name: p.display_name || 'Stellar Cadet',
-        avatar: (p.display_name || 'S').slice(0, 1).toUpperCase(),
-        level,
-        points: p.xp_total ?? 0,
-        deltaFromLastMonth: 0,
-        levelProgress: pct,
-        categories: [],
-        courses: [],
-        achievements: []
-    };
+  const level = levelForXp(p.xp_total ?? 0);
+  const { pct } = levelProgress(p.xp_total ?? 0);
+  return {
+    id: p.user_id,
+    rank,
+    name: p.display_name || "Stellar Cadet",
+    avatar: (p.display_name || "S").slice(0, 1).toUpperCase(),
+    level,
+    points: p.xp_total ?? 0,
+    deltaFromLastMonth: 0,
+    levelProgress: pct,
+    categories: [],
+    courses: [],
+    achievements: [],
+  };
 }
 
 async function enrichLiveRows(baseRows) {
-    if (!baseRows?.length) return baseRows;
-    const userIds = baseRows.map(r => r.id).filter(Boolean);
-    if (!userIds.length) return baseRows;
+  if (!baseRows?.length) return baseRows;
+  const userIds = baseRows.map((r) => r.id).filter(Boolean);
+  if (!userIds.length) return baseRows;
 
-    let enrollmentsByUser = {};
-    let progressByUser = {};
-    let totalsByCourse = {};
+  let enrollmentsByUser = {};
+  let progressByUser = {};
+  let totalsByCourse = {};
 
+  try {
+    const { data: enrollments } = await supabase
+      .from("enrollments")
+      .select("user_id, course_id, courses(title, subject)")
+      .in("user_id", userIds);
+    for (const e of enrollments ?? []) {
+      if (!enrollmentsByUser[e.user_id]) enrollmentsByUser[e.user_id] = [];
+      enrollmentsByUser[e.user_id].push(e);
+    }
+  } catch (_e) {}
+
+  try {
+    const { data: progressRows } = await supabase
+      .from("lesson_progress")
+      .select("user_id, course_id, status")
+      .in("user_id", userIds)
+      .eq("status", "completed");
+    for (const p of progressRows ?? []) {
+      if (!progressByUser[p.user_id]) progressByUser[p.user_id] = [];
+      progressByUser[p.user_id].push(p);
+    }
+  } catch (_e) {}
+
+  const allCourseIds = [
+    ...new Set(
+      Object.values(enrollmentsByUser)
+        .flat()
+        .map((e) => e.course_id)
+        .filter(Boolean),
+    ),
+  ];
+  if (allCourseIds.length) {
     try {
-        const { data: enrollments } = await supabase
-            .from('enrollments')
-            .select('user_id, course_id, courses(title, subject)')
-            .in('user_id', userIds);
-        for (const e of enrollments ?? []) {
-            if (!enrollmentsByUser[e.user_id]) enrollmentsByUser[e.user_id] = [];
-            enrollmentsByUser[e.user_id].push(e);
-        }
+      const { data: lessons } = await supabase
+        .from("lessons")
+        .select("course_id")
+        .in("course_id", allCourseIds)
+        .eq("is_published", true);
+      for (const l of lessons ?? []) {
+        totalsByCourse[l.course_id] = (totalsByCourse[l.course_id] ?? 0) + 1;
+      }
     } catch (_e) {}
+  }
 
-    try {
-        const { data: progressRows } = await supabase
-            .from('lesson_progress')
-            .select('user_id, course_id, status')
-            .in('user_id', userIds)
-            .eq('status', 'completed');
-        for (const p of progressRows ?? []) {
-            if (!progressByUser[p.user_id]) progressByUser[p.user_id] = [];
-            progressByUser[p.user_id].push(p);
-        }
-    } catch (_e) {}
+  return baseRows.map((row) => {
+    const enrolls = enrollmentsByUser[row.id] ?? [];
+    const prog = progressByUser[row.id] ?? [];
 
-    const allCourseIds = [...new Set(Object.values(enrollmentsByUser).flat().map(e => e.course_id).filter(Boolean))];
-    if (allCourseIds.length) {
-        try {
-            const { data: lessons } = await supabase
-                .from('lessons')
-                .select('course_id')
-                .in('course_id', allCourseIds)
-                .eq('is_published', true);
-            for (const l of lessons ?? []) {
-                totalsByCourse[l.course_id] = (totalsByCourse[l.course_id] ?? 0) + 1;
-            }
-        } catch (_e) {}
+    // Categories: derived from enrolled course subjects (real-time), fallback to level-based
+    let categories = [];
+    if (enrolls.length) {
+      const subjects = [
+        ...new Set(
+          enrolls
+            .map((e) => e.courses?.subject || e.courses?.title)
+            .filter(Boolean),
+        ),
+      ];
+      categories = subjects.slice(0, 3);
+    }
+    if (!categories.length) {
+      categories = [`Level ${row.level} Achiever`];
+      if (row.points >= 500) categories.push("Consistent Learner");
+      if (row.points >= 1000) categories.push("Top Contributor");
+      if (prog.length >= 5) categories.push("Fast Finisher");
     }
 
-    return baseRows.map(row => {
-        const enrolls = enrollmentsByUser[row.id] ?? [];
-        const prog = progressByUser[row.id] ?? [];
+    // Courses Enrolled: real enrollments with progress (real-time)
+    let courses = [];
+    if (enrolls.length) {
+      const completedByCourse = {};
+      for (const p of prog)
+        completedByCourse[p.course_id] =
+          (completedByCourse[p.course_id] ?? 0) + 1;
+      courses = enrolls.map((e) => {
+        const title = e.courses?.title ?? "Course";
+        const total = totalsByCourse[e.course_id] ?? 0;
+        const completed = completedByCourse[e.course_id] ?? 0;
+        const progress =
+          total > 0
+            ? Math.round((completed / total) * 100)
+            : prog.length
+              ? 20
+              : 0;
+        return { id: e.course_id, title, progress: Math.min(100, progress) };
+      });
+    }
 
-        // Categories: derived from enrolled course subjects (real-time), fallback to level-based
-        let categories = [];
-        if (enrolls.length) {
-            const subjects = [...new Set(enrolls.map(e => e.courses?.subject || e.courses?.title).filter(Boolean))];
-            categories = subjects.slice(0, 3);
-        }
-        if (!categories.length) {
-            categories = [`Level ${row.level} Achiever`];
-            if (row.points >= 500) categories.push('Consistent Learner');
-            if (row.points >= 1000) categories.push('Top Contributor');
-            if (prog.length >= 5) categories.push('Fast Finisher');
-        }
-
-        // Courses Enrolled: real enrollments with progress (real-time)
-        let courses = [];
-        if (enrolls.length) {
-            const completedByCourse = {};
-            for (const p of prog) completedByCourse[p.course_id] = (completedByCourse[p.course_id] ?? 0) + 1;
-            courses = enrolls.map(e => {
-                const title = e.courses?.title ?? 'Course';
-                const total = totalsByCourse[e.course_id] ?? 0;
-                const completed = completedByCourse[e.course_id] ?? 0;
-                const progress = total > 0 ? Math.round((completed / total) * 100) : (prog.length ? 20 : 0);
-                return { id: e.course_id, title, progress: Math.min(100, progress) };
-            });
-        }
-
-        // Achievements: real-time derived from live profile + enrollments + progress
-        let achievements = [];
-        achievements.push({ id: `${row.id}-a-level`, iconKey: 'star', level: row.level, caption: `Level ${row.level} Achiever` });
-        if (enrolls.length) achievements.push({ id: `${row.id}-a-enroll`, iconKey: 'book', level: Math.min(enrolls.length, 5), caption: `${enrolls.length} Courses Enrolled` });
-        if (prog.length) achievements.push({ id: `${row.id}-a-lessons`, iconKey: 'target', level: Math.min(prog.length, 5), caption: `${prog.length} Lessons Completed` });
-        if (row.points >= 100) achievements.push({ id: `${row.id}-a-xp`, iconKey: 'flame', level: Math.min(Math.floor(row.points / 200) + 1, 5), caption: `${row.points} XP Earned` });
-        if (!achievements.length) achievements.push({ id: `${row.id}-a-new`, iconKey: 'star', level: 1, caption: 'New Learner' });
-
-        return { ...row, categories: categories.slice(0, 3), courses, achievements };
+    // Achievements: real-time derived from live profile + enrollments + progress
+    let achievements = [];
+    achievements.push({
+      id: `${row.id}-a-level`,
+      iconKey: "star",
+      level: row.level,
+      caption: `Level ${row.level} Achiever`,
     });
+    if (enrolls.length)
+      achievements.push({
+        id: `${row.id}-a-enroll`,
+        iconKey: "book",
+        level: Math.min(enrolls.length, 5),
+        caption: `${enrolls.length} Courses Enrolled`,
+      });
+    if (prog.length)
+      achievements.push({
+        id: `${row.id}-a-lessons`,
+        iconKey: "target",
+        level: Math.min(prog.length, 5),
+        caption: `${prog.length} Lessons Completed`,
+      });
+    if (row.points >= 100)
+      achievements.push({
+        id: `${row.id}-a-xp`,
+        iconKey: "flame",
+        level: Math.min(Math.floor(row.points / 200) + 1, 5),
+        caption: `${row.points} XP Earned`,
+      });
+    if (!achievements.length)
+      achievements.push({
+        id: `${row.id}-a-new`,
+        iconKey: "star",
+        level: 1,
+        caption: "New Learner",
+      });
+
+    return {
+      ...row,
+      categories: categories.slice(0, 3),
+      courses,
+      achievements,
+    };
+  });
 }
 
-function Leaderboard() {
-    const [liveRows, setLiveRows] = useState(null);
-    const sortedByRank = useMemo(() => {
-        if (liveRows && liveRows.length > 0) return liveRows;
-        return [...leaderboardData].sort((a, b) => a.rank - b.rank);
-    }, [liveRows]);
-    const topThree = sortedByRank.slice(0, 3);
-    const [selectedUserId, setSelectedUserId] = useState(null);
-    const [modalType, setModalType] = useState(null); // null | 'achievements' | 'courses'
+// The actual leaderboard content (podium, ranked list, and the right-side
+// selected-user detail panel with achievements/courses/progression) - shared
+// as-is between the authenticated /leaderboard route (wrapped below in
+// ProtectedLayout) and the public landing page (wrapped in its own Sidebar/
+// Header instead), so both always show the same real leaderboard.
+export function LeaderboardContent() {
+  const [liveRows, setLiveRows] = useState(null);
+  const sortedByRank = useMemo(() => {
+    if (liveRows && liveRows.length > 0) return liveRows;
+    return [...leaderboardData].sort((a, b) => a.rank - b.rank);
+  }, [liveRows]);
+  const topThree = sortedByRank.slice(0, 3);
+  const [selectedUserId, setSelectedUserId] = useState(null);
+  const [modalType, setModalType] = useState(null); // null | 'achievements' | 'courses'
 
-    useEffect(() => {
-        let cancelled = false;
-        const fallbackId = [...leaderboardData].sort((a, b) => a.rank - b.rank)[0]?.id ?? null;
-        getTopProfiles(8)
-            .then(async (rows) => {
-                if (cancelled) return;
-                if (rows?.length) {
-                    const mapped = rows.map((p, i) => toLiveRow(p, i + 1));
-                    const enriched = await enrichLiveRows(mapped);
-                    if (cancelled) return;
-                    setLiveRows(enriched);
-                    setSelectedUserId((prev) => prev ?? enriched[0].id);
-                } else {
-                    setSelectedUserId((prev) => prev ?? fallbackId);
-                }
-            })
-            .catch(() => {
-                if (!cancelled) setSelectedUserId((prev) => prev ?? fallbackId);
-            });
-        return () => { cancelled = true; };
-    }, []);
+  useEffect(() => {
+    let cancelled = false;
+    const fallbackId =
+      [...leaderboardData].sort((a, b) => a.rank - b.rank)[0]?.id ?? null;
+    getTopProfiles(8)
+      .then(async (rows) => {
+        if (cancelled) return;
+        if (rows?.length) {
+          const mapped = rows.map((p, i) => toLiveRow(p, i + 1));
+          const enriched = await enrichLiveRows(mapped);
+          if (cancelled) return;
+          setLiveRows(enriched);
+          setSelectedUserId((prev) => prev ?? enriched[0].id);
+        } else {
+          setSelectedUserId((prev) => prev ?? fallbackId);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setSelectedUserId((prev) => prev ?? fallbackId);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
-    // Real-time: refresh categories/courses when enrollments or progress change
-    useEffect(() => {
-        const refresh = async () => {
-            try {
-                const rows = await getTopProfiles(8);
-                if (!rows?.length) return;
-                const mapped = rows.map((p, i) => toLiveRow(p, i + 1));
-                const enriched = await enrichLiveRows(mapped);
-                setLiveRows(enriched);
-            } catch (_e) {}
-        };
-        let channel = null;
-        try {
-            channel = supabase
-                .channel('leaderboard-right-panel-realtime')
-                .on('postgres_changes', { event: '*', schema: 'public', table: 'enrollments' }, () => { refresh(); })
-                .on('postgres_changes', { event: '*', schema: 'public', table: 'lesson_progress' }, () => { refresh(); })
-                .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => { refresh(); })
-                .subscribe();
-        } catch (_e) {}
-        return () => { if (channel) supabase.removeChannel(channel); };
-    }, []);
+  // Real-time: refresh categories/courses when enrollments or progress change
+  useEffect(() => {
+    const refresh = async () => {
+      try {
+        const rows = await getTopProfiles(8);
+        if (!rows?.length) return;
+        const mapped = rows.map((p, i) => toLiveRow(p, i + 1));
+        const enriched = await enrichLiveRows(mapped);
+        setLiveRows(enriched);
+      } catch (_e) {}
+    };
+    let channel = null;
+    try {
+      channel = supabase
+        .channel("leaderboard-right-panel-realtime")
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "enrollments" },
+          () => {
+            refresh();
+          },
+        )
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "lesson_progress" },
+          () => {
+            refresh();
+          },
+        )
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "profiles" },
+          () => {
+            refresh();
+          },
+        )
+        .subscribe();
+    } catch (_e) {}
+    return () => {
+      if (channel) supabase.removeChannel(channel);
+    };
+  }, []);
 
-    const selectedUser = sortedByRank.find((u) => u.id === selectedUserId) ?? topThree[0] ?? sortedByRank[0] ?? null;
+  const selectedUser =
+    sortedByRank.find((u) => u.id === selectedUserId) ??
+    topThree[0] ??
+    sortedByRank[0] ??
+    null;
 
-    if (!selectedUser) return null;
-
+  if (!selectedUser) {
     return (
-        <section className="leaderboard-section" id="leaderboard">
-            <div className="leaderboard-container">
-                {/* Left side - Podium + Intro, Ranked List */}
-                <div className="leaderboard-content">
-                    <div className="leaderboard-podium-frame">
-                        <div className="leaderboard-podium-visual">
-                            <ThreeDLeaderboard topThree={topThree} onSelectUser={setSelectedUserId} />
-                        </div>
+      <p className="text-sm text-[#6A6F73] dark:text-[#8FA893]">
+        Loading leaderboard…
+      </p>
+    );
+  }
 
-                        <div className="leaderboard-intro">
-                            <h1>Grind &amp; Build</h1>
-                            <p>
-                                See how you stack up against other learners. Earn points by
-                                completing tasks, climb the leaderboard, and keep grinding to build
-                                your way to the top.
-                            </p>
-                        </div>
-                    </div>
-
-                    <div className="leaderboard-list-block">
-                        <div className="section-header">
-                            <h2>Leaderboard</h2>
-                            <span className="leaderboard-count">{sortedByRank.length} learners</span>
-                        </div>
-
-                        <div className="leaderboard-list leaderboard-scroll">
-                            {sortedByRank.map((user) => {
-                                const isPositive = user.deltaFromLastMonth >= 0;
-                                const DeltaIcon = isPositive ? TrendingUp : TrendingDown;
-
-                                return (
-                                    <button
-                                        type="button"
-                                        key={user.id}
-                                        className={`leaderboard-row ${user.id === selectedUserId ? 'active' : ''}`}
-                                        onClick={() => setSelectedUserId(user.id)}
-                                    >
-                                        {user.rank <= 3 ? (
-                                            <span className={`leaderboard-rank-medal ${MEDAL_LABELS[user.rank]}`}>
-                                                {user.rank}
-                                            </span>
-                                        ) : (
-                                            <span className="leaderboard-rank">{user.rank}</span>
-                                        )}
-                                        <span className="leaderboard-row-avatar">{user.avatar}</span>
-                                        <span className="leaderboard-row-info">
-                                            <strong>{user.name}</strong>
-                                            <small>Level {user.level}</small>
-                                        </span>
-                                        <span className={`leaderboard-delta ${isPositive ? 'positive' : 'negative'}`}>
-                                            <DeltaIcon size={13} />
-                                            {Math.abs(user.deltaFromLastMonth)} from last month
-                                        </span>
-                                    </button>
-                                );
-                            })}
-                        </div>
-                    </div>
-                </div>
-
-                {/* Right side - Selected User Detail Panel */}
-                <aside className="leaderboard-detail-panel">
-                    <div className="leaderboard-user-header">
-                        <span className="leaderboard-user-avatar">{selectedUser.avatar}</span>
-                        <div>
-                            <h3>{selectedUser.name}</h3>
-                            <div className="leaderboard-level-stars">
-                                <span className="level-pill">Level {selectedUser.level}</span>
-                                {Array.from({ length: selectedUser.level }).map((_, i) => (
-                                    <Star key={i} size={14} color="#F6C445" fill="#F6C445" />
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="leaderboard-categories">
-                        <h4>Achiever in other categories</h4>
-                        <div className="category-pills">
-                            {selectedUser.categories.length ? (
-                                selectedUser.categories.map((category) => (
-                                    <span className="category-pill" key={category}>{category}</span>
-                                ))
-                            ) : (
-                                <span className="category-pill" style={{ opacity: 0.7 }}>No categories yet</span>
-                            )}
-                        </div>
-                    </div>
-
-                    <div className="leaderboard-achievements-block">
-                        <div className="section-header">
-                            <h4>Achievements</h4>
-                            {selectedUser.achievements.length > ACHIEVEMENTS_VISIBLE && (
-                                <button
-                                    type="button"
-                                    className="see-all-link"
-                                    onClick={() => setModalType('achievements')}
-                                >
-                                    Show All
-                                </button>
-                            )}
-                        </div>
-
-                        <div className="achievements-fixed-box">
-                            <div className="achievement-cards-grid">
-                                {selectedUser.achievements.slice(0, ACHIEVEMENTS_VISIBLE).map((achievement, i) => (
-                                    <AchievementCard
-                                        key={achievement.id}
-                                        iconKey={achievement.iconKey}
-                                        level={achievement.level}
-                                        caption={achievement.caption}
-                                        index={i}
-                                    />
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="leaderboard-courses-block">
-                        <div className="section-header">
-                            <h4>Courses Enrolled</h4>
-                            {selectedUser.courses.length > COURSES_VISIBLE && (
-                                <button
-                                    type="button"
-                                    className="see-all-link"
-                                    onClick={() => setModalType('courses')}
-                                >
-                                    Show All
-                                </button>
-                            )}
-                        </div>
-
-                        <div className="courses-fixed-box">
-                            <div className="course-list">
-                                {selectedUser.courses.length ? (
-                                    selectedUser.courses.slice(0, COURSES_VISIBLE).map((course) => (
-                                        <CourseRow key={course.id} title={course.title} progress={course.progress} />
-                                    ))
-                                ) : (
-                                    <p className="text-xs" style={{ color: '#6A6F73', padding: '8px 0' }}>No courses enrolled yet — live data</p>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="leaderboard-progress-block">
-                        <span className="progress-block-label">Progression</span>
-                        <div className="section-header">
-                            <h4>Level {selectedUser.level}</h4>
-                        </div>
-                        <div className="lb-progress-bar">
-                            <div
-                                className="lb-progress-fill"
-                                style={{ width: `${selectedUser.levelProgress}%` }}
-                            />
-                        </div>
-                        <span className="lb-progress-text">{selectedUser.levelProgress}% completed</span>
-                    </div>
-                </aside>
+  return (
+    <section className="leaderboard-section" id="leaderboard">
+      <div className="leaderboard-container">
+        {/* Left side - Podium + Intro, Ranked List */}
+        <div className="leaderboard-content">
+          <div className="leaderboard-podium-frame">
+            <div className="leaderboard-podium-visual">
+              <ThreeDLeaderboard
+                topThree={topThree}
+                onSelectUser={setSelectedUserId}
+              />
             </div>
 
-            {modalType === 'achievements' && (
-                <DetailModal
-                    avatar={selectedUser.avatar}
-                    name={selectedUser.name}
-                    label="All Achievements"
-                    onClose={() => setModalType(null)}
-                >
-                    <div className="achievement-cards-grid">
-                        {selectedUser.achievements.map((achievement, i) => (
-                            <AchievementCard
-                                key={achievement.id}
-                                iconKey={achievement.iconKey}
-                                level={achievement.level}
-                                caption={achievement.caption}
-                                index={i}
-                            />
-                        ))}
-                    </div>
-                </DetailModal>
-            )}
+            <div className="leaderboard-intro">
+              <h1>Grind &amp; Build</h1>
+              <p>
+                See how you stack up against other learners. Earn points by
+                completing tasks, climb the leaderboard, and keep grinding to
+                build your way to the top.
+              </p>
+            </div>
+          </div>
 
-            {modalType === 'courses' && (
-                <DetailModal
-                    avatar={selectedUser.avatar}
-                    name={selectedUser.name}
-                    label="Enrolled Courses"
-                    onClose={() => setModalType(null)}
+          <div className="leaderboard-list-block">
+            <div className="section-header">
+              <h2>Leaderboard</h2>
+              <span className="leaderboard-count">
+                {sortedByRank.length} learners
+              </span>
+            </div>
+
+            <div className="leaderboard-list leaderboard-scroll">
+              {sortedByRank.map((user) => {
+                const isPositive = user.deltaFromLastMonth >= 0;
+                const DeltaIcon = isPositive ? TrendingUp : TrendingDown;
+
+                return (
+                  <button
+                    type="button"
+                    key={user.id}
+                    className={`leaderboard-row ${user.id === selectedUserId ? "active" : ""}`}
+                    onClick={() => setSelectedUserId(user.id)}
+                  >
+                    {user.rank <= 3 ? (
+                      <span
+                        className={`leaderboard-rank-medal ${MEDAL_LABELS[user.rank]}`}
+                      >
+                        {user.rank}
+                      </span>
+                    ) : (
+                      <span className="leaderboard-rank">{user.rank}</span>
+                    )}
+                    <span className="leaderboard-row-avatar">
+                      {user.avatar}
+                    </span>
+                    <span className="leaderboard-row-info">
+                      <strong>{user.name}</strong>
+                      <small>Level {user.level}</small>
+                    </span>
+                    <span
+                      className={`leaderboard-delta ${isPositive ? "positive" : "negative"}`}
+                    >
+                      <DeltaIcon size={13} />
+                      {Math.abs(user.deltaFromLastMonth)} from last month
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* Right side - Selected User Detail Panel */}
+        <aside className="leaderboard-detail-panel">
+          <div className="leaderboard-user-header">
+            <span className="leaderboard-user-avatar">
+              {selectedUser.avatar}
+            </span>
+            <div>
+              <h3>{selectedUser.name}</h3>
+              <div className="leaderboard-level-stars">
+                <span className="level-pill">Level {selectedUser.level}</span>
+                {Array.from({ length: selectedUser.level }).map((_, i) => (
+                  <Star key={i} size={14} color="#F6C445" fill="#F6C445" />
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="leaderboard-categories">
+            <h4>Achiever in other categories</h4>
+            <div className="category-pills">
+              {selectedUser.categories.length ? (
+                selectedUser.categories.map((category) => (
+                  <span className="category-pill" key={category}>
+                    {category}
+                  </span>
+                ))
+              ) : (
+                <span className="category-pill" style={{ opacity: 0.7 }}>
+                  No categories yet
+                </span>
+              )}
+            </div>
+          </div>
+
+          <div className="leaderboard-achievements-block">
+            <div className="section-header">
+              <h4>Achievements</h4>
+              {selectedUser.achievements.length > ACHIEVEMENTS_VISIBLE && (
+                <button
+                  type="button"
+                  className="see-all-link"
+                  onClick={() => setModalType("achievements")}
                 >
-                    <div className="course-list">
-                        {selectedUser.courses.map((course) => (
-                            <CourseRow key={course.id} title={course.title} progress={course.progress} />
-                        ))}
-                    </div>
-                </DetailModal>
-            )}
-        </section>
-    );
+                  Show All
+                </button>
+              )}
+            </div>
+
+            <div className="achievements-fixed-box">
+              <div className="achievement-cards-grid">
+                {selectedUser.achievements
+                  .slice(0, ACHIEVEMENTS_VISIBLE)
+                  .map((achievement, i) => (
+                    <AchievementCard
+                      key={achievement.id}
+                      iconKey={achievement.iconKey}
+                      level={achievement.level}
+                      caption={achievement.caption}
+                      index={i}
+                    />
+                  ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="leaderboard-courses-block">
+            <div className="section-header">
+              <h4>Courses Enrolled</h4>
+              {selectedUser.courses.length > COURSES_VISIBLE && (
+                <button
+                  type="button"
+                  className="see-all-link"
+                  onClick={() => setModalType("courses")}
+                >
+                  Show All
+                </button>
+              )}
+            </div>
+
+            <div className="courses-fixed-box">
+              <div className="course-list">
+                {selectedUser.courses.length ? (
+                  selectedUser.courses
+                    .slice(0, COURSES_VISIBLE)
+                    .map((course) => (
+                      <CourseRow
+                        key={course.id}
+                        title={course.title}
+                        progress={course.progress}
+                      />
+                    ))
+                ) : (
+                  <p
+                    className="text-xs"
+                    style={{ color: "var(--muted)", padding: "8px 0" }}
+                  >
+                    No courses enrolled yet — live data
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="leaderboard-progress-block">
+            <span className="progress-block-label">Progression</span>
+            <div className="section-header">
+              <h4>Level {selectedUser.level}</h4>
+            </div>
+            <div className="lb-progress-bar">
+              <div
+                className="lb-progress-fill"
+                style={{ width: `${selectedUser.levelProgress}%` }}
+              />
+            </div>
+            <span className="lb-progress-text">
+              {selectedUser.levelProgress}% completed
+            </span>
+          </div>
+        </aside>
+      </div>
+
+      {modalType === "achievements" && (
+        <DetailModal
+          avatar={selectedUser.avatar}
+          name={selectedUser.name}
+          label="All Achievements"
+          onClose={() => setModalType(null)}
+        >
+          <div className="achievement-cards-grid">
+            {selectedUser.achievements.map((achievement, i) => (
+              <AchievementCard
+                key={achievement.id}
+                iconKey={achievement.iconKey}
+                level={achievement.level}
+                caption={achievement.caption}
+                index={i}
+              />
+            ))}
+          </div>
+        </DetailModal>
+      )}
+
+      {modalType === "courses" && (
+        <DetailModal
+          avatar={selectedUser.avatar}
+          name={selectedUser.name}
+          label="Enrolled Courses"
+          onClose={() => setModalType(null)}
+        >
+          <div className="course-list">
+            {selectedUser.courses.map((course) => (
+              <CourseRow
+                key={course.id}
+                title={course.title}
+                progress={course.progress}
+              />
+            ))}
+          </div>
+        </DetailModal>
+      )}
+    </section>
+  );
+}
+
+// Authenticated /leaderboard route: same content, inside the app shell.
+function Leaderboard() {
+  return (
+    <ProtectedLayout>
+      <LeaderboardContent />
+    </ProtectedLayout>
+  );
 }
 
 export default Leaderboard;

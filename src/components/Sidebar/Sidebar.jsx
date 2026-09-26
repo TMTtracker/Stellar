@@ -2,14 +2,15 @@ import "./Sidebar.css";
 import logo from "../../assets/icons/logo-icon.svg";
 import {
   House,
-  BookOpen,
   Trophy,
   Users,
   User,
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 
-const SECTION_IDS = ["home", "courses", "leaderboard", "community", "profile"];
+// Courses is intentionally left out here - it's disconnected from the
+// landing page for now (see Landing.jsx), not deleted.
+const SECTION_IDS = ["home", "leaderboard", "community", "profile"];
 
 function Sidebar() {
 
@@ -80,11 +81,6 @@ function Sidebar() {
     <button onClick={() => scrollToSection("home")} className={`nav-button ${active === "home" ? "active" : ""}`}>
         <House size={22}/>
         <span className="tooltip">Home</span>
-    </button>
-
-    <button onClick={() => scrollToSection("courses")} className={`nav-button ${active === "courses" ? "active" : ""}`} >
-        <BookOpen size={22}/>
-        <span className="tooltip">Courses</span>
     </button>
 
     <button onClick={() => scrollToSection("leaderboard")} className={`nav-button ${active === "leaderboard" ? "active" : ""}`} >

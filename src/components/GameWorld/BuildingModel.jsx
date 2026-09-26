@@ -2,14 +2,13 @@ import { useGLTF, Outlines } from '@react-three/drei'
 import { useMemo, useState } from 'react'
 import * as THREE from 'three'
 
-import windMillModel from '../../assets/models/SM_Wind_mill.glb'
-
-// Mirrors Camp.jsx's load/clone/center pattern, but as a reusable,
-// positionable, interactive component - Camp only ever renders once at
-// the origin, this renders once per placed building instance (each needs
-// its own clone since a single Object3D can't live at two positions).
-function WindMill({ position = [0, 0, 0], rotationDeg = 0, scale = 0.01, selected = false, onSelect }) {
-    const { scene } = useGLTF(windMillModel)
+// Generic loader for any placed building's .glb model - replaces the
+// windmill-only WindMill.jsx now that a second building (water well) needs
+// the exact same load/clone/center/hover/select/rotate behavior. Adding a
+// third building later is just one new entry in GameWorld's model map, not
+// a whole new component file.
+function BuildingModel({ modelUrl, position = [0, 0, 0], rotationDeg = 0, scale = 0.01, selected = false, onSelect }) {
+    const { scene } = useGLTF(modelUrl)
     const [hovered, setHovered] = useState(false)
 
     const clonedScene = useMemo(() => {
@@ -21,6 +20,16 @@ function WindMill({ position = [0, 0, 0], rotationDeg = 0, scale = 0.01, selecte
         clone.position.x -= center.x
         clone.position.z -= center.z
         clone.position.y -= box.min.y
+
+        // Meshes loaded from a GLTF default to castShadow/receiveShadow
+        // false - unlike the hand-built props in WorldProps.jsx, which set
+        // these directly on each <mesh>, a loaded scene needs it done here.
+        clone.traverse((child) => {
+            if (child.isMesh) {
+                child.castShadow = true
+                child.receiveShadow = true
+            }
+        })
 
         return clone
     }, [scene])
@@ -51,4 +60,4 @@ function WindMill({ position = [0, 0, 0], rotationDeg = 0, scale = 0.01, selecte
     )
 }
 
-export default WindMill
+export default BuildingModel
