@@ -111,3 +111,34 @@
         border-radius: 20px;
     }
 }
+
+/* Night mode */
+.dark .detailmodal-backdrop {
+    background: rgba(0, 0, 0, 0.65);
+}
+
+.dark .detailmodal-card {
+    background: #14171A;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+}
+
+.dark .detailmodal-close {
+    color: #8FA893;
+}
+
+.dark .detailmodal-close:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #F2F5F0;
+}
+
+.dark .detailmodal-avatar {
+    background: #1F2622;
+}
+
+.dark .detailmodal-header h2 {
+    color: #F2F5F0;
+}
+
+.dark .detailmodal-header p {
+    color: #8FA893;
+}

@@ -21,6 +21,15 @@ const MATERIAL_FIELDS = [
 // (and its base_levels catalog row) is added.
 const MAX_LEVEL = 3
 
+// Shared static camera for every level's preview, with per-level overrides
+// for models whose proportions don't fit it well - level 3's steep roof
+// needs the camera raised and aimed a bit higher so the peak clears the top
+// of the frame instead of just barely fitting under it.
+const DEFAULT_PREVIEW_CAMERA = { position: [7, 5.5, 7], target: [0, 1.5, 0], zoom: 16 }
+const PREVIEW_CAMERA_OVERRIDES = {
+    3: { position: [7, 10, 7], target: [0, 3, 0], zoom: 13 }
+}
+
 /**
  * Preview + confirm for base levels 1-MAX_LEVEL, browsable with the same
  * arrows/dots pattern as the landing page's intro carousel. Levels already
@@ -46,6 +55,8 @@ function UpgradeBaseModal({ currentBaseLevel, baseLevels, modelUrls, resources, 
             .map(f => ({ ...f, required: catalogRow[f.required] ?? 0, have: resources[f.key] ?? 0 }))
             .filter(f => f.required > 0)
         : []
+
+    const previewCamera = PREVIEW_CAMERA_OVERRIDES[step] ?? DEFAULT_PREVIEW_CAMERA
 
     const acquired = (currentBaseLevel ?? 1) >= step
     const isNext = step === (currentBaseLevel ?? 1) + 1 && configured
@@ -110,9 +121,9 @@ function UpgradeBaseModal({ currentBaseLevel, baseLevels, modelUrls, resources, 
                     <Canvas
                         key={step}
                         orthographic
-                        camera={{ position: [7, 5.5, 7], zoom: 20, near: 0.1, far: 100 }}
+                        camera={{ position: previewCamera.position, zoom: previewCamera.zoom, near: 0.1, far: 100 }}
                         gl={{ alpha: true }}
-                        onCreated={({ camera }) => camera.lookAt(0, 1.5, 0)}
+                        onCreated={({ camera }) => camera.lookAt(...previewCamera.target)}
                     >
                         <ambientLight intensity={1.5} />
                         <directionalLight position={[5, 8, 3]} intensity={1.6} />

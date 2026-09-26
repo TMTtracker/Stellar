@@ -70,6 +70,7 @@ function GameWorld({ dark = false }) {
     const [busy, setBusy] = useState(false)
     const [showUpgradeEffect, setShowUpgradeEffect] = useState(false)
     const prevBaseLevel = useRef(null)
+    const controlsRef = useRef(null)
 
     useEffect(() => {
         function load() {
@@ -137,6 +138,26 @@ function GameWorld({ dark = false }) {
         }
     }
 
+    // Panning (rotate is disabled, so this is the only way the camera moves)
+    // has no built-in bound in OrbitControls. Without one, dragging far
+    // enough eventually carries the view past the ground's edge into empty
+    // space below the horizon - clamp the pan target back onto a safe
+    // radius every time it changes, well inside the 400x400 ground plane.
+    const MAX_PAN = 45
+    function handleControlsChange() {
+        const controls = controlsRef.current
+        if (!controls) return
+        const { target, object: camera } = controls
+        const clampedX = Math.max(-MAX_PAN, Math.min(MAX_PAN, target.x))
+        const clampedZ = Math.max(-MAX_PAN, Math.min(MAX_PAN, target.z))
+        if (clampedX !== target.x || clampedZ !== target.z) {
+            camera.position.x += clampedX - target.x
+            camera.position.z += clampedZ - target.z
+            target.x = clampedX
+            target.z = clampedZ
+        }
+    }
+
     async function handleRemove() {
         if (!selected || busy || isBaseSelected) return
         setBusy(true)
@@ -196,9 +217,12 @@ function GameWorld({ dark = false }) {
                     a light source tied to any specific model. */}
                 {dark && <hemisphereLight args={['#3A4A8A', '#0A0D1C', 0.25]} />}
 
-                {/* Green ground */}
+                {/* Green ground - a single quad, so making it huge costs nothing.
+                    Sized at 2000x2000 (half-extent 1000) so its edge is
+                    mathematically unreachable within the ±45-unit pan clamp
+                    below, however the camera got positioned. */}
                 <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.01, 0]} receiveShadow>
-                    <planeGeometry args={[100, 100]} />
+                    <planeGeometry args={[2000, 2000]} />
                     <meshStandardMaterial color="#7fb96a" flatShading />
                 </mesh>
 
@@ -282,6 +306,7 @@ function GameWorld({ dark = false }) {
                 })}
 
                 <OrbitControls
+                    ref={controlsRef}
                     makeDefault
                     target={[0, 0, 0]}
                     enableRotate={false}
@@ -289,6 +314,7 @@ function GameWorld({ dark = false }) {
                     enableZoom={true}
                     minZoom={25}
                     maxZoom={50}
+                    onChange={handleControlsChange}
                 />
             </Canvas>
 

@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
-import { Backpack, Trophy, ShoppingBag, BookOpen, Settings, Flame, Zap, Banknote, Building2, Building, Warehouse, Lock, BrickWall, TreeDeciduous, Gem, Mountain, Pickaxe, Beaker, Lightbulb, Feather, Clock, X, Hammer, Check, User, Moon, Sun, LogOut, Minus, ListChecks, Blocks } from 'lucide-react'
+import { Backpack, Trophy, ShoppingBag, BookOpen, Settings, Flame, Zap, Banknote, Building2, Building, Warehouse, Lock, BrickWall, TreeDeciduous, Gem, Mountain, Pickaxe, Beaker, Lightbulb, Feather, Clock, X, Hammer, Check, User, Moon, Sun, LogOut, Minus, ListChecks, Blocks, Users } from 'lucide-react'
 import ProtectedLayout from '@/components/ProtectedLayout/ProtectedLayout'
 import NotificationBell from '@/components/Notifications/NotificationBell'
 import GameWorld, { BASE_MODEL_URLS } from '@/components/GameWorld/GameWorld'
 import UpgradeBaseModal from '@/components/GameWorld/UpgradeBaseModal'
+import MiniMap from '@/components/GameWorld/MiniMap'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 import { useWallet } from '@/hooks/useWallet'
@@ -43,6 +44,7 @@ const nav = [
     { id: 'courses', label: 'Courses', icon: BookOpen, to: '/courses' },
     { id: 'leaderboard', label: 'Leaderboard', icon: Trophy, to: '/leaderboard' },
     { id: 'shop', label: 'Shop', icon: ShoppingBag, to: '/shop' },
+    { id: 'community', label: 'Community', icon: Users, to: '/communities' },
     { id: 'inventory', label: 'Inventory', icon: Backpack, to: null },
     { id: 'your-builds', label: 'Your Builds', icon: Hammer, to: null },
     { id: 'profile', label: 'Profile', icon: User, to: '/profile' }
@@ -448,18 +450,16 @@ export default function Dashboard() {
                     </span>
                     <span className='text-sm font-bold flex items-center gap-2 text-[#1F2225] dark:text-[#F2F5F0]'>
                         {baseLabel}
-                        {nextBaseLevelInfo && (
-                            <button
-                                onClick={() => setShowUpgradeBase(true)}
-                                className={`px-3 py-1.5 transition-colors text-xs font-semibold rounded-full ${baseReady ? 'bg-[#8dc26d] hover:bg-[#A9D8AE] text-white' : 'bg-[#EFF3EE] dark:bg-[#1B211C] text-[#6A6F73] dark:text-[#8FA893] hover:bg-[#DDF0E1] dark:hover:bg-[#1E2B20]'}`}
-                            >
-                                Upgrade
-                            </button>
-                        )}
+                        <button
+                            onClick={() => setShowUpgradeBase(true)}
+                            className={`px-3 py-1.5 transition-colors text-xs font-semibold rounded-full ${baseReady ? 'bg-[#8dc26d] hover:bg-[#A9D8AE] text-white' : 'bg-[#EFF3EE] dark:bg-[#1B211C] text-[#6A6F73] dark:text-[#8FA893] hover:bg-[#DDF0E1] dark:hover:bg-[#1E2B20]'}`}
+                        >
+                            {nextBaseLevelInfo ? 'Upgrade' : 'Preview'}
+                        </button>
                     </span>
                 </div>
 
-                {showUpgradeBase && nextBaseLevelInfo && (
+                {showUpgradeBase && (
                     <UpgradeBaseModal
                         currentBaseLevel={base.base_level}
                         baseLevels={baseLevels}
@@ -470,9 +470,10 @@ export default function Dashboard() {
                     />
                 )}
 
-                {/* Bottom-left: minimap */}
-                <div className='absolute bottom-4 left-4  bg-white/95 dark:bg-[#14171A]/95 border border-[#C9DDC4] dark:border-[#262E28] rounded-xl flex flex-col items-center justify-center gap-1 shadow-sm hover:border-[#A9D8AE] transition-colors'>
-                    <img src='public/assets/minimap.png' className='h-[25vh]' alt='' />
+                {/* Bottom-left: minimap - a real, live plot of the camp/base
+                    and every placed building, not a static decorative image. */}
+                <div className='absolute bottom-4 left-4 p-1.5 bg-white/95 dark:bg-[#14171A]/95 border border-[#C9DDC4] dark:border-[#262E28] rounded-xl shadow-sm hover:border-[#A9D8AE] transition-colors'>
+                    <MiniMap />
                 </div>
 
                 {/* Bottom nav bar */}
