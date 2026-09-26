@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { Search, Heart, Send, Users, TrendingUp, MoreHorizontal, MessageCircle } from 'lucide-react'
 import ProtectedLayout from '@/components/ProtectedLayout/ProtectedLayout'
 import { useAuth } from '@/hooks/useAuth'
@@ -57,6 +58,7 @@ const tags = ['All', 'Study Help', 'Milestone', 'Event', 'Questions']
 export default function Communities() {
     const { user } = useAuth()
     const { level } = useWallet()
+    const [searchParams] = useSearchParams()
     const [posts, setPosts] = useState([])
     const [showNewPost, setShowNewPost] = useState(false)
     const [showNewPostWithImage, setShowNewPostWithImage] = useState(false)
@@ -80,8 +82,30 @@ export default function Communities() {
     // realtime post_comments INSERT listener below skip the echo of our own
     // insert instead of double-counting it.
     const selfCountedCommentIds = useRef(new Set())
+    const deepLinkedPostId = useRef(null)
 
     const displayName = user?.user_metadata?.full_name || user?.email || 'Stellar Cadet'
+
+    // Arriving from a "commented on your post" notification (?post=<id>) -
+    // open that post's comments and scroll to it, once, as soon as it's
+    // actually in the loaded posts list.
+    useEffect(() => {
+        const postId = searchParams.get('post')
+        if (!postId || postId === deepLinkedPostId.current) return
+        const match = posts.find(p => p.id === postId)
+        if (!match) return
+        deepLinkedPostId.current = postId
+
+        setExpandedComments(prev => (prev.has(postId) ? prev : new Set(prev).add(postId)))
+        setCommentsByPost(cur => (cur[postId] ? cur : { ...cur, [postId]: { loading: true, error: '', items: [] } }))
+        listComments(postId)
+            .then(items => setCommentsByPost(cur => ({ ...cur, [postId]: { loading: false, error: '', items } })))
+            .catch(e => setCommentsByPost(cur => ({ ...cur, [postId]: { loading: false, error: e.message ?? 'Failed to load comments', items: [] } })))
+
+        requestAnimationFrame(() => {
+            document.getElementById(`post-${postId}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        })
+    }, [posts, searchParams])
 
     useEffect(() => {
         let cancelled = false
@@ -488,7 +512,7 @@ export default function Communities() {
                         const isPostingComment = postingCommentIds.has(thread.id)
 
                         return (
-                            <article key={threadKey} className='bg-white dark:bg-[#14171A] rounded-2xl border border-[#C9DDC4] dark:border-[#262E28] p-5'>
+                            <article key={threadKey} id={isReal ? `post-${threadKey}` : undefined} className='bg-white dark:bg-[#14171A] rounded-2xl border border-[#C9DDC4] dark:border-[#262E28] p-5'>
                                 <div className='flex items-center justify-between mb-3'>
                                     <div className='flex items-center gap-3'>
                                         <div className='w-10 h-10 rounded-full bg-[#A9D8AE] text-white flex items-center justify-center font-bold text-sm'>

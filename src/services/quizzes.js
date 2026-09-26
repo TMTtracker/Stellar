@@ -92,6 +92,29 @@ export async function getLessonsWithQuiz(courseId) {
 // ---------- Submission + grading (client-side MVP) ----------
 
 /**
+ * Pure grading, no side effects - also used by the instructor preview.
+ * @param answers {Record<questionId, optionId>}
+ */
+export function gradeQuiz({ quiz, answers }) {
+    const questions = quiz.questions ?? []
+    let earned = 0
+    let total = 0
+    const graded = questions.map(q => {
+        const points = q.points ?? 1
+        total += points
+        const pickedId = answers[q.id]
+        const correct = q.options.find(o => o.is_correct)
+        const isRight = !!pickedId && !!correct && pickedId === correct.id
+        if (isRight) earned += points
+        return { questionId: q.id, pickedId: pickedId ?? null, correctId: correct?.id ?? null, isRight, points }
+    })
+
+    const score = total > 0 ? Math.round((earned / total) * 100) : 0
+    const passed = score >= (quiz.passing_score ?? 70)
+    return { graded, score, passed }
+}
+
+/**
  * Grade answers locally (is_correct is readable per RLS in the MVP),
  * persist the attempt, and auto-complete the lesson when passed.
  *
@@ -116,21 +139,7 @@ export async function submitQuizAttempt({ quiz, answers }) {
         if (!enrollment) throw new Error('Enroll in this course before submitting quizzes')
     }
 
-    const questions = quiz.questions ?? []
-    let earned = 0
-    let total = 0
-    const graded = questions.map(q => {
-        const points = q.points ?? 1
-        total += points
-        const pickedId = answers[q.id]
-        const correct = q.options.find(o => o.is_correct)
-        const isRight = !!pickedId && !!correct && pickedId === correct.id
-        if (isRight) earned += points
-        return { questionId: q.id, pickedId: pickedId ?? null, correctId: correct?.id ?? null, isRight, points }
-    })
-
-    const score = total > 0 ? Math.round((earned / total) * 100) : 0
-    const passed = score >= (quiz.passing_score ?? 70)
+    const { graded, score, passed } = gradeQuiz({ quiz, answers })
 
     const { data: attempt, error } = await supabase
         .from('quiz_attempts')

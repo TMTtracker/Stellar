@@ -1,8 +1,10 @@
 import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 
-export default function RequireAuth({ children }) {
-    const { user, loading } = useAuth()
+// `role` restricts the route to one account type; the other type is sent
+// to its own home (instructors -> /instructor, students -> /dashboard).
+export default function RequireAuth({ children, role }) {
+    const { user, loading, role: userRole } = useAuth()
     const location = useLocation()
 
     if (loading) {
@@ -15,6 +17,10 @@ export default function RequireAuth({ children }) {
 
     if (!user) {
         return <Navigate to='/' state={{ from: location }} replace />
+    }
+
+    if (role && userRole !== role) {
+        return <Navigate to={userRole === 'instructor' ? '/instructor' : '/dashboard'} replace />
     }
 
     return children

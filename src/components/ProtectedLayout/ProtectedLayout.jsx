@@ -3,6 +3,7 @@ import { BookOpen, Users, Home as House, Zap, Coins, LogOut, Sparkles, User, Tro
 import { useAuth } from '@/hooks/useAuth'
 import { useWallet } from '@/hooks/useWallet'
 import { useAvatar, isImageAvatar } from '@/hooks/useAvatar'
+import NotificationBell from '@/components/Notifications/NotificationBell'
 
 const navItems = [
     { to: '/dashboard', icon: House, label: 'Dashboard' },
@@ -19,7 +20,7 @@ const bottomNavItems = [
 function ProtectedLayout({ children }) {
     const location = useLocation()
     const navigate = useNavigate()
-    const { user, signOut } = useAuth()
+    const { user, signOut, isInstructor } = useAuth()
     const { xp, coins } = useWallet()
     const { avatar } = useAvatar()
 
@@ -48,7 +49,7 @@ function ProtectedLayout({ children }) {
             {!isDashboard && (
                 <nav className='w-16 shrink-0 h-screen overflow-y-auto bg-[#DCEFD6] dark:bg-[#0E1210] border-r border-[#C9DDC4] dark:border-[#20291F] flex flex-col items-center py-6 gap-2 justify-between'>
                     <div className='flex flex-col items-center gap-2 w-full'>
-                        <Link to='/dashboard' className='w-9 h-9 rounded-md bg-[#141814] flex items-center justify-center mb-6'>
+                        <Link to={isInstructor ? '/instructor' : '/dashboard'} title={isInstructor ? 'Back to Instructor Studio' : undefined} className='w-9 h-9 rounded-md bg-[#141814] flex items-center justify-center mb-6'>
                             <span className='text-white text-xs font-bold'>{'</>'}</span>
                         </Link>
 
@@ -99,6 +100,7 @@ function ProtectedLayout({ children }) {
                                 <Coins size={16} className='text-[#E8933E]' />
                                 <span className='text-sm font-bold'>{coins.toLocaleString()}</span>
                             </div>
+                            <NotificationBell buttonClassName='relative w-10 h-10 rounded-full bg-white dark:bg-[#14171A] border border-[#C9DDC4] dark:border-[#262E28] text-[#6A6F73] dark:text-[#8FA893] flex items-center justify-center hover:border-[#A9D8AE] hover:text-[#A9D8AE] transition-colors' />
                             <Link
                                 to='/profile'
                                 className={`w-10 h-10 rounded-full bg-[#141814] text-white flex items-center justify-center font-bold text-xs hover:bg-[#232823] transition-colors overflow-hidden ${avatarIsImage ? 'p-0' : ''}`}
