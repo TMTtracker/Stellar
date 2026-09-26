@@ -159,7 +159,38 @@ export async function saveCourse(course, lessons) {
     return data
 }
 
+/**
+ * Flip just is_published, without touching lessons/quizzes - used by the
+ * preview page's one-click Publish button, where there's no full lesson
+ * edit payload to (re)send like there is in the course editor.
+ */
+export async function publishCourse(courseId, publish) {
+    const userId = await currentUserId()
+    const { error } = await supabase
+        .from('courses')
+        .update({ is_published: publish, updated_at: new Date().toISOString() })
+        .eq('id', courseId)
+        .eq('created_by', userId)
+    if (error) throw error
+}
+
 export async function deleteCourse(courseId) {
     const { error } = await supabase.from('courses').delete().eq('id', courseId)
     if (error) throw error
+}
+
+// ---------- Activity log ----------
+
+/** This instructor's own publish/draft history (newest first). */
+export async function listMyPublishLog(limit = 30) {
+    const { data, error } = await supabase
+        .from('course_publish_log')
+        .select('id, course_id, action, course_title, created_at')
+        .order('created_at', { ascending: false })
+        .limit(limit)
+    if (error) {
+        if (/could not find the table|schema cache/i.test(error.message ?? '')) return []
+        throw error
+    }
+    return data ?? []
 }

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { BookOpen, Clock, Code, Eye, FileText, MessagesSquare, Pencil, Plus, Trash2, Users } from 'lucide-react'
+import { BookOpen, Clock, Code, Eye, FileText, MessagesSquare, Pencil, Plus, Trash2, Users, FileEdit } from 'lucide-react'
 import InstructorLayout from '@/components/Instructor/InstructorLayout'
 import { useAuth } from '@/hooks/useAuth'
 import { deleteCourse, listMyCourses } from '@/services/instructor'
@@ -80,9 +80,10 @@ export default function InstructorDashboard() {
                 <p className='text-sm text-[#6A6F73] dark:text-[#8FA893] mt-1'>Create courses, write lectures, and track how many students are learning with you.</p>
             </div>
 
-            <div className='grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8'>
+            <div className='grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8'>
                 <StatCard label='Courses' value={courses.length} icon={BookOpen} />
                 <StatCard label='Published' value={totals.published} icon={Eye} />
+                <StatCard label='Drafts' value={courses.length - totals.published} icon={FileEdit} />
                 <StatCard label='Lectures' value={totals.lessons} icon={FileText} />
                 <StatCard label='Enrolled students' value={totals.students} icon={Users} />
             </div>

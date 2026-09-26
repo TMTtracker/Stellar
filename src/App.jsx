@@ -17,6 +17,7 @@ import { lazy, Suspense } from "react";
 const InstructorDashboard = lazy(() => import("@/Pages/Instructor"));
 const CourseEditor = lazy(() => import("@/Pages/Instructor/CourseEditor"));
 const CoursePreview = lazy(() => import("@/Pages/Instructor/CoursePreview"));
+const InstructorSettings = lazy(() => import("@/Pages/Instructor/Settings"));
 
 function InstructorRoute() {
   return (
@@ -52,6 +53,7 @@ function App() {
         <Route path="courses/new" element={<CourseEditor />} />
         <Route path="courses/:courseId/edit" element={<CourseEditor />} />
         <Route path="courses/:courseId/preview" element={<CoursePreview />} />
+        <Route path="settings" element={<InstructorSettings />} />
       </Route>
       <Route
         path="/courses"

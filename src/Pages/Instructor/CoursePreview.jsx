@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
-import { ArrowLeft, ArrowRight, BookOpen, ChevronLeft, Clock, Coins, Eye, ListChecks, Pencil, Zap } from 'lucide-react'
+import { ArrowLeft, ArrowRight, BookOpen, ChevronLeft, Clock, Coins, Eye, ListChecks, Loader2, Pencil, Rocket, Zap } from 'lucide-react'
 import InstructorLayout from '@/components/Instructor/InstructorLayout'
 import LessonContent from '@/components/Lesson/LessonContent'
 import QuizTaker from '@/components/Quiz/QuizTaker'
-import { getCoursePreview } from '@/services/instructor'
+import { getCoursePreview, publishCourse } from '@/services/instructor'
 import { getQuizForLesson } from '@/services/quizzes'
 import { materialIconFor } from '@/lib/materials'
 
@@ -26,6 +26,8 @@ export default function CoursePreview() {
     const [lessons, setLessons] = useState([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState('')
+    const [publishing, setPublishing] = useState(false)
+    const [publishError, setPublishError] = useState('')
     // { lessonId, quiz } so a quiz from the previous lesson never shows
     const [quizState, setQuizState] = useState({ lessonId: null, quiz: null, error: '' })
 
@@ -68,10 +70,35 @@ export default function CoursePreview() {
         document.querySelector('main')?.scrollTo({ top: 0 })
     }
 
+    async function handlePublish() {
+        setPublishing(true)
+        setPublishError('')
+        try {
+            await publishCourse(courseId, true)
+            setCourse(c => ({ ...c, is_published: true }))
+        } catch (e) {
+            setPublishError(e.message ?? 'Publish failed.')
+        } finally {
+            setPublishing(false)
+        }
+    }
+
     const actions = (
-        <Link to={`/instructor/courses/${courseId}/edit`} className='inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium bg-[#141814] text-white hover:bg-[#2A2E2B]'>
-            <Pencil size={15} /> Edit course
-        </Link>
+        <div className='flex items-center gap-2'>
+            {course && !course.is_published && (
+                <button
+                    onClick={handlePublish}
+                    disabled={publishing}
+                    className='inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium bg-[#A9D8AE] text-white hover:bg-[#96CC9C] disabled:opacity-60'
+                >
+                    {publishing ? <Loader2 size={15} className='animate-spin' /> : <Rocket size={15} />}
+                    {publishing ? 'Publishing…' : 'Publish'}
+                </button>
+            )}
+            <Link to={`/instructor/courses/${courseId}/edit`} className='inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium bg-[#141814] text-white hover:bg-[#2A2E2B]'>
+                <Pencil size={15} /> Edit course
+            </Link>
+        </div>
     )
 
     return (
@@ -91,6 +118,9 @@ export default function CoursePreview() {
 
             {!loading && !error && course && (
                 <div className='max-w-[1280px] flex flex-col gap-5'>
+                    {publishError && (
+                        <div className='rounded-xl px-4 py-3 text-sm bg-[#FDEEEE] text-[#B03A31] dark:bg-[#2A1A17] dark:text-[#E39B8B]'>{publishError}</div>
+                    )}
                     <div className='flex flex-wrap items-center gap-3 rounded-xl px-4 py-3 text-sm bg-[#141814] text-[#E8F0E6]'>
                         <Eye size={16} className='text-[#A9D8AE] shrink-0' />
                         <span className='flex-1'>

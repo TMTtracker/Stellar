@@ -1,6 +1,8 @@
+import { useState } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
-import { LayoutDashboard, LogOut, Plus } from 'lucide-react'
+import { LayoutDashboard, LogOut, Plus, Settings, Moon, Sun } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
+import { useDarkMode } from '@/hooks/useDarkMode'
 
 const navItems = [
     { to: '/instructor', end: true, icon: LayoutDashboard, label: 'My courses' },
@@ -11,6 +13,8 @@ const navItems = [
 export default function InstructorLayout({ subtitle = 'Instructor Studio', actions, children }) {
     const navigate = useNavigate()
     const { user, signOut } = useAuth()
+    const { dark, toggle: toggleDarkMode } = useDarkMode()
+    const [settingsOpen, setSettingsOpen] = useState(false)
 
     const name = user?.user_metadata?.full_name || user?.email || 'Instructor'
     const initials = name.split(/[@\s]+/).filter(Boolean).slice(0, 2).map(p => p[0].toUpperCase()).join('')
@@ -67,6 +71,44 @@ export default function InstructorLayout({ subtitle = 'Instructor Studio', actio
                     <div className='flex items-center gap-3'>
                         {actions}
                         <span className='hidden sm:inline text-[11px] font-bold tracking-wider text-[#3E7A42] dark:text-[#8FE0A0] bg-white dark:bg-[#14171A] border border-[#C9DDC4] dark:border-[#262E28] px-3 py-1.5 rounded-full'>INSTRUCTOR</span>
+                        <div className='relative'>
+                            <button
+                                aria-label='Settings'
+                                aria-expanded={settingsOpen}
+                                onClick={() => setSettingsOpen(o => !o)}
+                                className='w-9 h-9 bg-white dark:bg-[#14171A] border border-[#C9DDC4] dark:border-[#262E28] rounded-xl flex items-center justify-center text-[#6A6F73] dark:text-[#8FA893] hover:border-[#A9D8AE] hover:text-[#A9D8AE] transition-colors'
+                            >
+                                <Settings size={16} />
+                            </button>
+                            {settingsOpen && (
+                                <div className='absolute right-0 top-11 z-20 w-52 rounded-2xl border border-[#C9DDC4] dark:border-[#262E28] bg-white dark:bg-[#14171A] p-2 text-[#1F2225] dark:text-[#F2F5F0] shadow-xl'>
+                                    <button
+                                        onClick={toggleDarkMode}
+                                        aria-pressed={dark}
+                                        className='flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold hover:bg-[#EFFAF4] dark:hover:bg-[#1E2B20]'
+                                    >
+                                        {dark ? <Moon size={16} /> : <Sun size={16} />}
+                                        Night mode
+                                        <span className={`ml-auto flex h-5 w-9 items-center rounded-full p-0.5 transition-colors ${dark ? 'bg-[#A9D8AE]' : 'bg-[#E4EBE2]'}`}>
+                                            <span className={`h-4 w-4 rounded-full bg-white shadow transition-transform ${dark ? 'translate-x-4' : 'translate-x-0'}`} />
+                                        </span>
+                                    </button>
+                                    <Link
+                                        to='/instructor/settings'
+                                        onClick={() => setSettingsOpen(false)}
+                                        className='flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold hover:bg-[#EFFAF4] dark:hover:bg-[#1E2B20]'
+                                    >
+                                        <Settings size={16} /> Profile settings
+                                    </Link>
+                                    <button
+                                        onClick={() => { setSettingsOpen(false); handleLogout() }}
+                                        className='flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-[#D9605B] hover:bg-[#FBF1ED] dark:hover:bg-[#2A1716]'
+                                    >
+                                        <LogOut size={16} /> Logout
+                                    </button>
+                                </div>
+                            )}
+                        </div>
                         <span className='w-10 h-10 rounded-full bg-[#141814] text-white flex items-center justify-center font-bold text-xs' title={user?.email}>
                             {initials || 'IN'}
                         </span>

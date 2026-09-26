@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
-import { Backpack, Trophy, ShoppingBag, BookOpen, Bell, Settings, Flame, Zap, Banknote, Building2, Building, Warehouse, Lock, BrickWall, TreeDeciduous, Gem, Mountain, Pickaxe, Beaker, Lightbulb, Feather, Clock, X, Hammer, Check, User, Moon, Sun, LogOut, Minus, ListChecks, Blocks } from 'lucide-react'
+import { Backpack, Trophy, ShoppingBag, BookOpen, Settings, Flame, Zap, Banknote, Building2, Building, Warehouse, Lock, BrickWall, TreeDeciduous, Gem, Mountain, Pickaxe, Beaker, Lightbulb, Feather, Clock, X, Hammer, Check, User, Moon, Sun, LogOut, Minus, ListChecks, Blocks } from 'lucide-react'
 import ProtectedLayout from '@/components/ProtectedLayout/ProtectedLayout'
+import NotificationBell from '@/components/Notifications/NotificationBell'
 import GameWorld, { BASE_MODEL_URLS } from '@/components/GameWorld/GameWorld'
 import UpgradeBaseModal from '@/components/GameWorld/UpgradeBaseModal'
 import { useNavigate } from 'react-router-dom'
@@ -411,9 +412,7 @@ export default function Dashboard() {
                         <span className='text-sm font-bold'>{totalMaterialCount}</span>
                         <span className='absolute -top-1.5 -right-1.5 w-4 h-4 bg-[#A9D8AE] text-white text-[10px] font-bold rounded-full flex items-center justify-center'>3</span>
                     </button>
-                    <button aria-label='Notifications' className='w-9 h-9 bg-white/95 dark:bg-[#14171A]/95 border border-[#C9DDC4] dark:border-[#262E28] rounded-xl flex items-center justify-center text-[#6A6F73] dark:text-[#8FA893] hover:border-[#A9D8AE] hover:text-[#A9D8AE] transition-colors'>
-                        <Bell size={16} />
-                    </button>
+                    <NotificationBell />
                     <div className='relative'>
                         <button aria-label='Settings' aria-expanded={settingsOpen} onClick={() => setSettingsOpen(open => !open)} className='w-9 h-9 bg-white/95 dark:bg-[#14171A]/95 border border-[#C9DDC4] dark:border-[#262E28] rounded-xl flex items-center justify-center text-[#6A6F73] dark:text-[#8FA893] hover:border-[#A9D8AE] hover:text-[#A9D8AE] transition-colors'>
                             <Settings size={16} />

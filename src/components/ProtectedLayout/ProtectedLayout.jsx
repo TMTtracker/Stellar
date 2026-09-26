@@ -3,6 +3,7 @@ import { BookOpen, Users, Home as House, Zap, Coins, LogOut, Sparkles, User, Tro
 import { useAuth } from '@/hooks/useAuth'
 import { useWallet } from '@/hooks/useWallet'
 import { useAvatar, isImageAvatar } from '@/hooks/useAvatar'
+import NotificationBell from '@/components/Notifications/NotificationBell'
 
 const navItems = [
     { to: '/dashboard', icon: House, label: 'Dashboard' },
@@ -99,6 +100,7 @@ function ProtectedLayout({ children }) {
                                 <Coins size={16} className='text-[#E8933E]' />
                                 <span className='text-sm font-bold'>{coins.toLocaleString()}</span>
                             </div>
+                            <NotificationBell buttonClassName='relative w-10 h-10 rounded-full bg-white dark:bg-[#14171A] border border-[#C9DDC4] dark:border-[#262E28] text-[#6A6F73] dark:text-[#8FA893] flex items-center justify-center hover:border-[#A9D8AE] hover:text-[#A9D8AE] transition-colors' />
                             <Link
                                 to='/profile'
                                 className={`w-10 h-10 rounded-full bg-[#141814] text-white flex items-center justify-center font-bold text-xs hover:bg-[#232823] transition-colors overflow-hidden ${avatarIsImage ? 'p-0' : ''}`}
