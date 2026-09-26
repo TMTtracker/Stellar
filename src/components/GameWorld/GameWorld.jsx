@@ -12,6 +12,7 @@ import windMillModel from "../../assets/models/SM_Wind_mill.glb"
 import waterWellModel from "../../assets/models/SM_Water_Well.glb"
 import workspaceModel from "../../assets/models/SM_WorkSpace.glb"
 import houseModel from "../../assets/models/SM_house.glb"
+import houseLevel3Model from "../../assets/models/SM_House_level_3.glb"
 
 // Which .glb model represents each build_menu id - any build_id not
 // listed here simply doesn't render anything yet.
@@ -25,7 +26,8 @@ const BUILDING_MODEL_URLS = {
 // always the hand-tuned <Camp/>, not a generic loaded model). Exported so
 // Dashboard's upgrade modal can preview the same model.
 export const BASE_MODEL_URLS = {
-    2: houseModel
+    2: houseModel,
+    3: houseLevel3Model
 }
 
 // Placed buildings get spread out relative to this origin. Grid

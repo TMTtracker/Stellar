@@ -462,8 +462,9 @@ export default function Dashboard() {
 
                 {showUpgradeBase && nextBaseLevelInfo && (
                     <UpgradeBaseModal
-                        levelInfo={nextBaseLevelInfo}
-                        modelUrl={BASE_MODEL_URLS[nextBaseLevelNum]}
+                        currentBaseLevel={base.base_level}
+                        baseLevels={baseLevels}
+                        modelUrls={BASE_MODEL_URLS}
                         resources={resources}
                         accountLevel={level}
                         onClose={() => setShowUpgradeBase(false)}

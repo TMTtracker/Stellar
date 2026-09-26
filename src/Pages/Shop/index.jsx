@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { BrickWall, Coins, TreeDeciduous, Zap } from 'lucide-react'
+import { BrickWall, Coins, TreeDeciduous, Zap, Mountain, Pickaxe, Beaker, Feather, Lightbulb } from 'lucide-react'
 import ProtectedLayout from '@/components/ProtectedLayout/ProtectedLayout'
 import { useWallet } from '@/hooks/useWallet'
 import { useInventory } from '@/hooks/useInventory'
@@ -23,6 +23,51 @@ const items = [
         icon: TreeDeciduous,
         material: 'Timber',
         qty: 5
+    },
+    {
+        id: 'stone-10',
+        name: 'Bundle of Stone ×10',
+        desc: 'Solid stone for sturdy walls.',
+        price: 40,
+        icon: Mountain,
+        material: 'Stone',
+        qty: 10
+    },
+    {
+        id: 'iron-10',
+        name: 'Bundle of Iron ×10',
+        desc: 'Refined iron for advanced builds.',
+        price: 50,
+        icon: Pickaxe,
+        material: 'Iron',
+        qty: 10
+    },
+    {
+        id: 'glass-10',
+        name: 'Bundle of Glass ×10',
+        desc: 'Clear glass for windows and towers.',
+        price: 20,
+        icon: Beaker,
+        material: 'Glass',
+        qty: 10
+    },
+    {
+        id: 'fabric-10',
+        name: 'Bundle of Fabric ×10',
+        desc: 'Woven fabric for tents and canopies.',
+        price: 20,
+        icon: Feather,
+        material: 'Fabric',
+        qty: 10
+    },
+    {
+        id: 'crystal-shard-10',
+        name: 'Bundle of Crystal Shards ×10',
+        desc: 'Rare shards for special builds.',
+        price: 40,
+        icon: Lightbulb,
+        material: 'Crystal shard',
+        qty: 10
     },
     {
         id: 'xp-boost',
