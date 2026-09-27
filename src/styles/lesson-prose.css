@@ -1,0 +1,111 @@
+/* Rich-text lesson body. Shared by the student lesson page and the
+   instructor editor so what the instructor writes is what students see.
+   Mirrors the markdown styling in src/Pages/Lessons/show.jsx. */
+
+.lesson-prose {
+    --prose-text: #2a2e2b;
+    --prose-heading: #1f2225;
+    --prose-accent: #a9d8ae;
+    --prose-quote-bg: #eff7ee;
+    --prose-code-bg: #eff3ee;
+    --prose-border: #c9ddc4;
+    --prose-link: #3e7a42;
+    color: var(--prose-text);
+    font-size: 15px;
+    line-height: 1.7;
+    overflow-wrap: anywhere;
+}
+
+.dark .lesson-prose {
+    --prose-text: #d4ddd2;
+    --prose-heading: #f2f5f0;
+    --prose-quote-bg: #16241a;
+    --prose-code-bg: #1b211c;
+    --prose-border: #262e28;
+    --prose-link: #8fe0a0;
+}
+
+.lesson-prose > :first-child { margin-top: 0; }
+.lesson-prose > :last-child { margin-bottom: 0; }
+
+.lesson-prose h1,
+.lesson-prose h2,
+.lesson-prose h3 {
+    color: var(--prose-heading);
+    letter-spacing: -0.01em;
+    line-height: 1.25;
+}
+.lesson-prose h1 { font-size: 1.6rem; font-weight: 800; margin: 0.5rem 0 0.75rem; }
+.lesson-prose h2 { font-size: 1.25rem; font-weight: 800; margin: 1.75rem 0 0.75rem; }
+.lesson-prose h3 { font-size: 1rem; font-weight: 700; margin: 1.5rem 0 0.5rem; }
+
+.lesson-prose p { margin: 0.75rem 0; }
+.lesson-prose p:empty::before { content: '\200b'; }
+
+.lesson-prose strong { font-weight: 700; color: var(--prose-heading); }
+.lesson-prose em { font-style: italic; }
+.lesson-prose u { text-decoration: underline; text-underline-offset: 2px; }
+.lesson-prose s { text-decoration: line-through; }
+
+.lesson-prose a {
+    color: var(--prose-link);
+    font-weight: 500;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.lesson-prose ul,
+.lesson-prose ol { margin: 0.75rem 0; padding-left: 1.4rem; }
+.lesson-prose ul { list-style: disc; }
+.lesson-prose ol { list-style: decimal; }
+.lesson-prose li { margin: 0.3rem 0; }
+.lesson-prose li::marker { color: var(--prose-accent); font-weight: 700; }
+.lesson-prose li > p { margin: 0; }
+
+.lesson-prose blockquote {
+    margin: 1rem 0;
+    padding: 0.75rem 1rem;
+    border-left: 4px solid var(--prose-accent);
+    border-radius: 0 12px 12px 0;
+    background: var(--prose-quote-bg);
+    color: var(--prose-heading);
+}
+.lesson-prose blockquote > p { margin: 0.25rem 0; }
+
+.lesson-prose code {
+    background: var(--prose-code-bg);
+    color: var(--prose-heading);
+    padding: 0.1rem 0.4rem;
+    border-radius: 6px;
+    font-size: 13px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+.lesson-prose pre {
+    background: #1f2225;
+    color: #e8f0e6;
+    border-radius: 12px;
+    padding: 1rem;
+    margin: 1rem 0;
+    overflow-x: auto;
+    font-size: 13px;
+    line-height: 1.6;
+}
+.lesson-prose pre code { background: none; color: inherit; padding: 0; }
+
+.lesson-prose hr { margin: 1.5rem 0; border: 0; border-top: 1px solid var(--prose-border); }
+
+.lesson-prose mark { background: #fbeea8; color: #1f2225; border-radius: 3px; padding: 0 2px; }
+
+.lesson-prose img { max-width: 100%; border-radius: 12px; }
+
+/* ---------- Editor-only ---------- */
+
+.lesson-prose.ProseMirror { outline: none; min-height: 420px; }
+
+.lesson-prose.ProseMirror p.is-editor-empty:first-child::before {
+    content: attr(data-placeholder);
+    float: left;
+    height: 0;
+    pointer-events: none;
+    color: #9aa39c;
+}

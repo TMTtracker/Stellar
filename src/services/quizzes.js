@@ -1,6 +1,5 @@
 import { supabase } from './supabaseClient'
 import { completeLesson } from './courses'
-import { awardQuizPass } from './wallet'
 
 // ---------- Quiz fetching ----------
 
@@ -93,15 +92,10 @@ export async function getLessonsWithQuiz(courseId) {
 // ---------- Submission + grading (client-side MVP) ----------
 
 /**
- * Grade answers locally (is_correct is readable per RLS in the MVP),
- * persist the attempt, and auto-complete the lesson when passed.
- *
+ * Pure grading, no side effects - also used by the instructor preview.
  * @param answers {Record<questionId, optionId>}
  */
-export async function submitQuizAttempt({ quiz, answers }) {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new Error('Must be signed in to submit a quiz')
-
+export function gradeQuiz({ quiz, answers }) {
     const questions = quiz.questions ?? []
     let earned = 0
     let total = 0
@@ -117,6 +111,35 @@ export async function submitQuizAttempt({ quiz, answers }) {
 
     const score = total > 0 ? Math.round((earned / total) * 100) : 0
     const passed = score >= (quiz.passing_score ?? 70)
+    return { graded, score, passed }
+}
+
+/**
+ * Grade answers locally (is_correct is readable per RLS in the MVP),
+ * persist the attempt, and auto-complete the lesson when passed.
+ *
+ * @param answers {Record<questionId, optionId>}
+ */
+export async function submitQuizAttempt({ quiz, answers }) {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('Must be signed in to submit a quiz')
+
+    const { data: lesson } = await supabase
+        .from('lessons')
+        .select('course_id')
+        .eq('id', quiz.lesson_id)
+        .single()
+    if (lesson) {
+        const { data: enrollment } = await supabase
+            .from('enrollments')
+            .select('course_id')
+            .eq('user_id', user.id)
+            .eq('course_id', lesson.course_id)
+            .maybeSingle()
+        if (!enrollment) throw new Error('Enroll in this course before submitting quizzes')
+    }
+
+    const { graded, score, passed } = gradeQuiz({ quiz, answers })
 
     const { data: attempt, error } = await supabase
         .from('quiz_attempts')
@@ -134,7 +157,6 @@ export async function submitQuizAttempt({ quiz, answers }) {
 
     let lessonCompleted = false
     let lessonReward = null
-    let quizReward = null
     if (passed) {
         try {
             const { data: lesson } = await supabase
@@ -143,7 +165,9 @@ export async function submitQuizAttempt({ quiz, answers }) {
                 .eq('id', quiz.lesson_id)
                 .single()
             if (lesson) {
-                // Awards lesson XP/coins once-ever (no-op on re-pass)
+                // Awards lesson XP/coins/material once-ever (no-op on re-pass).
+                // This is the only reward granted for passing - quizzes no
+                // longer have a separate bonus on top of it.
                 const res = await completeLesson({ lessonId: quiz.lesson_id, courseId: lesson.course_id })
                 lessonReward = res.reward
                 lessonCompleted = true
@@ -151,13 +175,7 @@ export async function submitQuizAttempt({ quiz, answers }) {
         } catch {
             // attempt is already saved; lesson completion is best-effort here
         }
-        try {
-            // Awards quiz XP/coins once-ever (first pass only)
-            quizReward = await awardQuizPass(quiz.id, attempt.id)
-        } catch (e) {
-            console.warn('[economy] quiz award skipped:', e.message)
-        }
     }
 
-    return { attempt, graded, score, passed, lessonCompleted, lessonReward, quizReward }
+    return { attempt, graded, score, passed, lessonCompleted, lessonReward }
 }

@@ -12,4 +12,7 @@ if (!supabaseUrl || !supabasePublishableKey) {
     )
 }
 
-export const supabase = createClient(supabaseUrl, supabasePublishableKey)
+export const isSupabaseConfigured = Boolean(supabaseUrl && supabasePublishableKey)
+export const supabase = isSupabaseConfigured
+    ? createClient(supabaseUrl, supabasePublishableKey)
+    : null

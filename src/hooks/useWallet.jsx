@@ -12,26 +12,33 @@ export function useWallet() {
     const { user } = useAuth()
     const [xp, setXp] = useState(0)
     const [coins, setCoins] = useState(0)
+    const [xpBoostCharges, setXpBoostCharges] = useState(0)
+    const [xpBoostUntil, setXpBoostUntil] = useState(null)
     const [loading, setLoading] = useState(true)
+
+    const applyProfile = useCallback((profile) => {
+        setXp(profile?.xp_total ?? 0)
+        setCoins(profile?.coins ?? 0)
+        setXpBoostCharges(profile?.xp_boost_charges ?? 0)
+        setXpBoostUntil(profile?.xp_boost_until ?? null)
+    }, [])
 
     const refresh = useCallback(async () => {
         if (!user) {
-            setXp(0)
-            setCoins(0)
+            applyProfile(null)
             setLoading(false)
             return
         }
         setLoading(true)
         try {
             const profile = await getMyProfile()
-            setXp(profile?.xp_total ?? 0)
-            setCoins(profile?.coins ?? 0)
+            applyProfile(profile)
         } catch (e) {
             console.error('[wallet] refresh failed:', e.message)
         } finally {
             setLoading(false)
         }
-    }, [user])
+    }, [user, applyProfile])
 
     // Identity-change load. All state updates live in the promise
     // callbacks (external async system), never synchronously in the effect.
@@ -42,8 +49,7 @@ export function useWallet() {
         getMyProfile()
             .then(profile => {
                 if (cancelled) return
-                setXp(profile?.xp_total ?? 0)
-                setCoins(profile?.coins ?? 0)
+                applyProfile(profile)
             })
             .catch(e => console.error('[wallet] refresh failed:', e.message))
             .finally(() => {
@@ -52,7 +58,7 @@ export function useWallet() {
         return () => {
             cancelled = true
         }
-    }, [user])
+    }, [user, applyProfile])
 
     useEffect(() => {
         window.addEventListener(WALLET_EVENT, refresh)
@@ -62,6 +68,16 @@ export function useWallet() {
     const shownXp = user ? xp : 0
     const shownCoins = user ? coins : 0
     const progress = levelProgress(shownXp)
+    const xpBoostActive = user && !!xpBoostUntil && new Date(xpBoostUntil) > new Date()
 
-    return { xp: shownXp, coins: shownCoins, ...progress, loading: user ? loading : false, refresh }
+    return {
+        xp: shownXp,
+        coins: shownCoins,
+        ...progress,
+        xpBoostCharges: user ? xpBoostCharges : 0,
+        xpBoostUntil: user ? xpBoostUntil : null,
+        xpBoostActive,
+        loading: user ? loading : false,
+        refresh
+    }
 }

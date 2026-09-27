@@ -1,7 +1,7 @@
 import logo from "../../assets/icons/logo-icon.svg";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { X, Mail, Lock, User, ArrowRight } from "lucide-react";
+import { X, Mail, Lock, User, ArrowRight, GraduationCap, Presentation } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
 import "./AuthModal.css";
@@ -46,6 +46,7 @@ function AuthModal({ mode = "login", onClose, onSwitch }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [accountRole, setAccountRole] = useState("student");
   const [error, setError] = useState("");
   const [info, setInfo] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -95,6 +96,7 @@ function AuthModal({ mode = "login", onClose, onSwitch }) {
           email: email.trim(),
           password,
           fullName: fullName.trim(),
+          role: accountRole,
         });
         // If email confirmation is enabled, there will be no session yet
         if (user && !session) {
@@ -104,8 +106,10 @@ function AuthModal({ mode = "login", onClose, onSwitch }) {
         }
       }
       requestClose();
-      // Navigate after close animation
-      setTimeout(() => navigate("/dashboard"), 190);
+      // Navigate after close animation. On login, /dashboard forwards
+      // instructors to /instructor (see RequireAuth).
+      const home = !isLogin && accountRole === "instructor" ? "/instructor" : "/dashboard";
+      setTimeout(() => navigate(home), 190);
     } catch (err) {
       setError(err.message || "Authentication failed. Please try again.");
     } finally {
@@ -140,10 +144,33 @@ function AuthModal({ mode = "login", onClose, onSwitch }) {
         <p className="authmodal-subtitle">
           {isLogin
             ? "Log in to pick up where you left off."
-            : "Start a course, finish a task, watch your world grow."}
+            : accountRole === "instructor"
+              ? "Create courses, write lectures, and teach learners on Stellar."
+              : "Start a course, finish a task, watch your world grow."}
         </p>
 
         <form className="authmodal-form" onSubmit={handleSubmit}>
+          {!isLogin && (
+            <div className="authmodal-role" role="radiogroup" aria-label="Sign up as">
+              {[
+                { value: "student", label: "Student", icon: GraduationCap },
+                { value: "instructor", label: "Instructor", icon: Presentation },
+              ].map(({ value, label, icon: Icon }) => (
+                <button
+                  key={value}
+                  type="button"
+                  role="radio"
+                  aria-checked={accountRole === value}
+                  className={`authmodal-role-option ${accountRole === value ? "is-active" : ""}`}
+                  onClick={() => setAccountRole(value)}
+                >
+                  <Icon size={16} />
+                  Sign up as {label}
+                </button>
+              ))}
+            </div>
+          )}
+
           {!isLogin && (
             <Field
               icon={User}

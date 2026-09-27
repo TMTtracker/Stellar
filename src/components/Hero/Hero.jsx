@@ -1,6 +1,6 @@
 import "./Hero.css";
 
-function Hero() {
+function Hero({ onGetStarted, onBrowseCourses }) {
     return (
 
         <section className="hero" id="home">
@@ -18,11 +18,11 @@ function Hero() {
 
             <div className="hero-buttons">
 
-                <button className="primary-btn">
+                <button className="primary-btn" onClick={onGetStarted}>
                     Get Started
                 </button>
 
-                <button className="secondary-btn">
+                <button className="secondary-btn" onClick={onBrowseCourses}>
                     Browse Courses
                 </button>
 

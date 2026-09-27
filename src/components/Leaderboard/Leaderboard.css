@@ -4,9 +4,6 @@
     --muted: #6A6F73;
     padding: 25px 15px 60px;
     background: #effaf4;
-    margin-top: 90px;
-    margin-left: 78px;
-    scroll-margin-top: 110px;
     box-sizing: border-box;
 }
 
@@ -17,6 +14,21 @@
     max-width: 100%;
     margin: 0 auto;
     width: 100%;
+}
+
+/* Landing page only: the page's own <main> already offsets for the fixed
+   sidebar (Tailwind ml-20), so this must not add its own margin-left on top
+   of that - and giving it its own full-viewport section (like every other
+   landing section) keeps it from crowding straight into the section above
+   it. The authenticated /leaderboard route doesn't need any of this since
+   ProtectedLayout already handles its spacing. */
+.landing-leaderboard-wrap .leaderboard-section {
+    margin-top: 90px;
+    min-height: 100vh;
+    scroll-margin-top: 110px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
 }
 
 .leaderboard-content {
@@ -542,6 +554,67 @@
     font-weight: 600;
 }
 
+/* Night mode - overriding the shared vars handles most muted-text spots in
+   one place; the rest are hardcoded hex in the rules above and need a
+   matching override here. */
+.dark .leaderboard-section {
+    --muted: #8FA893;
+    background: #0E1210;
+}
+
+.dark .leaderboard-podium-frame {
+    background: #0E1210;
+}
+
+.dark .leaderboard-intro {
+    background: #16241A;
+}
+
+.dark .leaderboard-intro h1,
+.dark .section-header h2,
+.dark .section-header h4,
+.dark .leaderboard-row-info strong,
+.dark .leaderboard-user-header h3,
+.dark .leaderboard-categories h4,
+.dark .achievement-level-row h5,
+.dark .course-row-info strong {
+    color: #F2F5F0;
+}
+
+.dark .leaderboard-row,
+.dark .leaderboard-detail-panel,
+.dark .leaderboard-progress-block {
+    background: #14171A;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
+.dark .leaderboard-row-avatar {
+    background: #1F2622;
+}
+
+.dark .leaderboard-rank-medal {
+    border-color: #14171A;
+}
+
+.dark .achievement-card,
+.dark .course-row {
+    background: #1B211C;
+}
+
+.dark .achievement-count-badge {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.dark .category-pill {
+    background: rgba(168, 215, 159, 0.16);
+    color: #9BE3A0;
+}
+
+.dark .course-row-bar,
+.dark .lb-progress-bar {
+    background: rgba(255, 255, 255, 0.1);
+}
+
 /* Responsive Design */
 @media (min-width: 1300px) {
     .leaderboard-section {
@@ -592,8 +665,6 @@
 @media (max-width: 767px) {
     .leaderboard-section {
         padding: 18px 12px;
-        margin-top: 85px;
-        margin-left: 0;
     }
 
     .leaderboard-container {

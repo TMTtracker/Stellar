@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { BrickWall, Coins, TreeDeciduous, Zap } from 'lucide-react'
+import { BrickWall, Coins, TreeDeciduous, Zap, Mountain, Pickaxe, Beaker, Feather, Lightbulb } from 'lucide-react'
 import ProtectedLayout from '@/components/ProtectedLayout/ProtectedLayout'
 import { useWallet } from '@/hooks/useWallet'
-import { spendCoins } from '@/services/wallet'
+import { useInventory } from '@/hooks/useInventory'
+import { buyShopItem } from '@/services/resources'
 
 const items = [
     {
@@ -10,14 +11,63 @@ const items = [
         name: 'Bundle of Bricks ×5',
         desc: 'Basic building material for your world.',
         price: 50,
-        icon: BrickWall
+        icon: BrickWall,
+        material: 'Bricks',
+        qty: 5
     },
     {
         id: 'timber-5',
         name: 'Bundle of Timber ×5',
         desc: 'Sturdy wood for halls and towers.',
         price: 90,
-        icon: TreeDeciduous
+        icon: TreeDeciduous,
+        material: 'Timber',
+        qty: 5
+    },
+    {
+        id: 'stone-10',
+        name: 'Bundle of Stone ×10',
+        desc: 'Solid stone for sturdy walls.',
+        price: 40,
+        icon: Mountain,
+        material: 'Stone',
+        qty: 10
+    },
+    {
+        id: 'iron-10',
+        name: 'Bundle of Iron ×10',
+        desc: 'Refined iron for advanced builds.',
+        price: 50,
+        icon: Pickaxe,
+        material: 'Iron',
+        qty: 10
+    },
+    {
+        id: 'glass-10',
+        name: 'Bundle of Glass ×10',
+        desc: 'Clear glass for windows and towers.',
+        price: 20,
+        icon: Beaker,
+        material: 'Glass',
+        qty: 10
+    },
+    {
+        id: 'fabric-10',
+        name: 'Bundle of Fabric ×10',
+        desc: 'Woven fabric for tents and canopies.',
+        price: 20,
+        icon: Feather,
+        material: 'Fabric',
+        qty: 10
+    },
+    {
+        id: 'crystal-shard-10',
+        name: 'Bundle of Crystal Shards ×10',
+        desc: 'Rare shards for special builds.',
+        price: 40,
+        icon: Lightbulb,
+        material: 'Crystal shard',
+        qty: 10
     },
     {
         id: 'xp-boost',
@@ -30,6 +80,7 @@ const items = [
 
 function Shop() {
     const { coins, xp, loading, refresh } = useWallet()
+    const { refresh: refreshInventory } = useInventory()
     const [buying, setBuying] = useState('')
     const [message, setMessage] = useState('')
 
@@ -37,13 +88,21 @@ function Shop() {
         setBuying(item.id)
         setMessage('')
         try {
-            const res = await spendCoins(item.price, `shop:${item.id}`)
-            if (res?.ok) {
-                setMessage(`Bought ${item.name} for ${item.price} coins.`)
-                refresh()
-            } else {
+            const res = await buyShopItem(item.id)
+            if (!res?.ok) {
                 setMessage(`Not enough coins — you have ${(res?.coins ?? coins).toLocaleString()}. Complete lessons to earn more.`)
+                return
             }
+            // buyShopItem already spends the coins AND grants the material
+            // atomically server-side — no separate addMaterials call here
+            // (that would grant the bundle twice).
+            refresh()
+            refreshInventory()
+            setMessage(
+                item.material
+                    ? `Bought ${item.name} for ${item.price} coins. Materials added to inventory.`
+                    : `Bought ${item.name} for ${item.price} coins.`
+            )
         } catch (e) {
             setMessage(e.message ?? 'Purchase failed.')
         } finally {
@@ -56,24 +115,24 @@ function Shop() {
             <div className='mb-6'>
                 <p className='text-[11px] font-bold tracking-wider text-[#A9D8AE]'>SHOP</p>
                 <h1 className='text-3xl font-extrabold tracking-tight'>Spend your coins</h1>
-                <p className='text-sm text-[#6A6F73] mt-2 max-w-xl'>
+                <p className='text-sm text-[#6A6F73] dark:text-[#8FA893] mt-2 max-w-xl'>
                     Earn coins by completing lessons and passing quizzes, then trade them for materials and boosts.
                 </p>
             </div>
 
             <div className='flex flex-wrap items-center gap-3 mb-6'>
-                <div className='flex items-center gap-2 bg-white border border-[#C9DDC4] px-4 py-2 rounded-full'>
+                <div className='flex items-center gap-2 bg-white dark:bg-[#14171A] border border-[#C9DDC4] dark:border-[#262E28] px-4 py-2 rounded-full'>
                     <Coins size={16} className='text-[#E8933E]' />
                     <span className='text-sm font-bold'>{loading ? '…' : coins.toLocaleString()} coins</span>
                 </div>
-                <div className='flex items-center gap-2 bg-white border border-[#C9DDC4] px-4 py-2 rounded-full'>
+                <div className='flex items-center gap-2 bg-white dark:bg-[#14171A] border border-[#C9DDC4] dark:border-[#262E28] px-4 py-2 rounded-full'>
                     <Zap size={16} className='text-[#A9D8AE]' />
                     <span className='text-sm font-bold'>{loading ? '…' : xp.toLocaleString()} XP</span>
                 </div>
             </div>
 
             {message && (
-                <p className='text-sm bg-white border border-[#C9DDC4] rounded-xl px-4 py-3 mb-6'>{message}</p>
+                <p className='text-sm bg-white dark:bg-[#14171A] border border-[#C9DDC4] dark:border-[#262E28] rounded-xl px-4 py-3 mb-6'>{message}</p>
             )}
 
             <div className='grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-5'>
@@ -81,12 +140,12 @@ function Shop() {
                     const Icon = item.icon
                     const afford = coins >= item.price
                     return (
-                        <div key={item.id} className='bg-white rounded-2xl border border-[#C9DDC4] p-5 flex flex-col'>
-                            <div className='w-11 h-11 rounded-xl bg-[#EFF3EE] flex items-center justify-center mb-3'>
-                                <Icon size={20} className='text-[#6A6F73]' />
+                        <div key={item.id} className='bg-white dark:bg-[#14171A] rounded-2xl border border-[#C9DDC4] dark:border-[#262E28] p-5 flex flex-col'>
+                            <div className='w-11 h-11 rounded-xl bg-[#EFF3EE] dark:bg-[#1B211C] flex items-center justify-center mb-3'>
+                                <Icon size={20} className='text-[#6A6F73] dark:text-[#8FA893]' />
                             </div>
-                            <h3 className='font-bold leading-snug'>{item.name}</h3>
-                            <p className='text-xs text-[#6A6F73] mt-1 mb-4'>{item.desc}</p>
+                            <h3 className='font-bold leading-snug text-[#1F2225] dark:text-[#F2F5F0]'>{item.name}</h3>
+                            <p className='text-xs text-[#6A6F73] dark:text-[#8FA893] mt-1 mb-4'>{item.desc}</p>
                             <button
                                 onClick={() => handleBuy(item)}
                                 disabled={!afford || buying === item.id || loading}

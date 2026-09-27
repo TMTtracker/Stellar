@@ -786,14 +786,3 @@ join (values
   ('Cold War & Beyond', 3, 'Increased censorship', false, 4)
 ) as x(lesson_title, question_position, option_text, is_correct, position)
 on x.lesson_title = l.title and x.question_position = qq.position;
-
--- ============================================================
--- ECONOMY (requires supabase/migrations/002_economy.sql)
--- Re-grant rewards for any existing progress and recompute every
--- profile total authoritatively from the ledger. Idempotent — safe
--- to re-run. Note: re-running the lesson inserts above creates NEW
--- lesson rows (new ids), which orphans old progress via cascade;
--- totals are rebuilt from whatever ledger rows survive, so balances
--- never drift from history.
--- ============================================================
-select public.backfill_economy();

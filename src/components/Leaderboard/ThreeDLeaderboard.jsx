@@ -15,10 +15,15 @@ const PODIUM_LAYOUT = [
 function PodiumBlock({ user, x, height, color, onSelectUser }) {
     const topY = height / 2;
 
+    // Live data may have < 3 profiles — skip empty slots instead of crashing.
+    if (!user) return null;
+
+    const displayName = user.name ?? 'Stellar Cadet';
+
     return (
         <group position={[x, 0, 0]}>
             {/* Plain box (no bevel) for crisp cube edges */}
-            <mesh position={[0, topY, 0]} onClick={() => onSelectUser(user.id)}>
+            <mesh position={[0, topY, 0]} onClick={() => onSelectUser?.(user.id)}>
                 <boxGeometry args={[BLOCK_WIDTH, height, BLOCK_DEPTH]} />
                 <meshStandardMaterial color={color} />
             </mesh>
@@ -42,14 +47,14 @@ function PodiumBlock({ user, x, height, color, onSelectUser }) {
                 zIndexRange={[10, 0]}
             >
                 <div className="podium-avatar-wrap">
-                    <span className="podium-avatar-name">{user.name.split(' ')[0]}</span>
+                    <span className="podium-avatar-name">{displayName.split(' ')[0]}</span>
                     <button
                         type="button"
                         className="podium-avatar"
-                        onClick={() => onSelectUser(user.id)}
-                        title={user.name}
+                        onClick={() => onSelectUser?.(user.id)}
+                        title={displayName}
                     >
-                        <span>{user.avatar}</span>
+                        <span>{user.avatar ?? displayName.slice(0, 1).toUpperCase()}</span>
                     </button>
                 </div>
             </Html>
@@ -57,7 +62,7 @@ function PodiumBlock({ user, x, height, color, onSelectUser }) {
     );
 }
 
-function ThreeDLeaderboard({ topThree, onSelectUser }) {
+function ThreeDLeaderboard({ topThree = [], onSelectUser }) {
     return (
         <div className="podium-canvas-wrap">
             <Canvas
